@@ -106,8 +106,13 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function snapshotUrl(role: CameraRole): string {
-  return `/api/snapshot/${role}`;
+export function snapshotUrl(
+  role: CameraRole,
+  options?: { overlay?: boolean },
+): string {
+  const overlay = options?.overlay !== false;
+  const q = overlay ? "" : "?overlay=false";
+  return `/api/snapshot/${role}${q}`;
 }
 
 export function fetchHealth(): Promise<{ status: string }> {
@@ -197,8 +202,11 @@ export function selectCameras(
   });
 }
 
-export async function fetchSnapshotBlob(role: CameraRole): Promise<Blob> {
-  const res = await fetch(snapshotUrl(role));
+export async function fetchSnapshotBlob(
+  role: CameraRole,
+  options?: { overlay?: boolean },
+): Promise<Blob> {
+  const res = await fetch(snapshotUrl(role, options));
   if (!res.ok) {
     throw new Error(`snapshot ${role} → ${res.status}`);
   }
@@ -214,7 +222,7 @@ export function releaseCameraHold(hold: CameraHold | null): void {
 export async function captureCamera(role: CameraRole): Promise<CameraHold> {
   const [colorRes, blob] = await Promise.all([
     fetchColor(role),
-    fetchSnapshotBlob(role),
+    fetchSnapshotBlob(role, { overlay: false }),
   ]);
   return {
     color: colorRes.color,

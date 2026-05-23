@@ -291,9 +291,9 @@ async def video_stream(role: str) -> StreamingResponse:
 
 
 @app.get("/api/snapshot/{role}")
-def snapshot(role: str) -> Response:
+def snapshot(role: str, overlay: bool = True) -> Response:
     stream = manager.get(_role(role))
-    jpeg = stream.get_frame_jpeg()
+    jpeg = stream.get_frame_jpeg(overlay=overlay)
     if not jpeg:
         raise HTTPException(503, "No frame")
     return Response(content=jpeg, media_type="image/jpeg")

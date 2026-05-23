@@ -23,6 +23,7 @@ class CameraStream:
         self.role = role
         self.device_index = device_index
         self._lock = threading.Lock()
+        self._frame_raw: np.ndarray | None = None
         self._frame: np.ndarray | None = None
         self._running = False
         self._thread: threading.Thread | None = None
@@ -148,6 +149,7 @@ class CameraStream:
 
             display = draw_roi_overlay(frame, roi)
             with self._lock:
+                self._frame_raw = frame
                 self._frame = display
                 self._last_color = color_payload
 
@@ -155,9 +157,10 @@ class CameraStream:
             self._cap.release()
             self._cap = None
 
-    def get_frame_jpeg(self) -> bytes | None:
+    def get_frame_jpeg(self, *, overlay: bool = True) -> bytes | None:
         with self._lock:
-            frame = None if self._frame is None else self._frame.copy()
+            source = self._frame if overlay else self._frame_raw
+            frame = None if source is None else source.copy()
         if frame is None:
             return None
         ok, buf = cv2.imencode(

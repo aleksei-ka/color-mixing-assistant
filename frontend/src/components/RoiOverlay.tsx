@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
 import type { RoiConfig } from "../api";
+import { pointerToFrame } from "../utils/imageLayout";
 
 const CLOSE_PX = 14;
 
@@ -12,6 +13,7 @@ type DragState = {
 };
 
 type Props = {
+  imageRef: RefObject<HTMLImageElement | null>;
   roi: RoiConfig;
   frameWidth: number;
   frameHeight: number;
@@ -53,6 +55,7 @@ function squareRect(
 }
 
 export function RoiOverlay({
+  imageRef,
   roi,
   frameWidth,
   frameHeight,
@@ -65,16 +68,13 @@ export function RoiOverlay({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  const displayToFrame = useCallback(
-    (dx: number, dy: number, dw: number, dh: number) => {
-      const fx = Math.round((dx / dw) * frameWidth);
-      const fy = Math.round((dy / dh) * frameHeight);
-      return [
-        Math.max(0, Math.min(frameWidth - 1, fx)),
-        Math.max(0, Math.min(frameHeight - 1, fy)),
-      ] as [number, number];
+  const framePointFromClient = useCallback(
+    (clientX: number, clientY: number): [number, number] | null => {
+      const img = imageRef.current;
+      if (!img) return null;
+      return pointerToFrame(clientX, clientY, img, frameWidth, frameHeight);
     },
-    [frameWidth, frameHeight],
+    [imageRef, frameWidth, frameHeight],
   );
 
   const rect = useMemo(
@@ -82,17 +82,8 @@ export function RoiOverlay({
     [roi, frameWidth, frameHeight],
   );
 
-  const framePointFromEvent = (e: React.MouseEvent) => {
-    const wrap = wrapRef.current;
-    if (!wrap) return null;
-    const box = wrap.getBoundingClientRect();
-    return displayToFrame(
-      e.clientX - box.left,
-      e.clientY - box.top,
-      box.width,
-      box.height,
-    );
-  };
+  const framePointFromEvent = (e: React.MouseEvent) =>
+    framePointFromClient(e.clientX, e.clientY);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (roi.mode !== "polygon" || roi.polygonClosed) return;

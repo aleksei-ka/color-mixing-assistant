@@ -105,30 +105,45 @@ export default function App() {
     async (role: CameraRole, roi: RoiConfig) => {
       const fw = config?.frameWidth ?? 1280;
       const fh = config?.frameHeight ?? 720;
-      let targetColor: ColorPayload | null = targetHold?.color ?? null;
-      let paletteColor: ColorPayload | null = paletteHold?.color ?? null;
-
-      const hold = role === "target" ? targetHold : paletteHold;
       const canSample =
-        hold &&
-        (roi.mode === "square" ||
-          (roi.mode === "polygon" && roi.polygonClosed && roi.points.length >= 3));
+        roi.mode === "square" ||
+        (roi.mode === "polygon" && roi.polygonClosed && roi.points.length >= 3);
 
-      if (hold && canSample) {
+      let targetColor: ColorPayload | null = null;
+      let paletteColor: ColorPayload | null = null;
+
+      const sampleHold = async (
+        hold: CameraHold,
+      ): Promise<ColorPayload> => {
         const rgb = await sampleRgbFromImage(hold.imageUrl, roi, fw, fh);
-        const color = await analyzeRgb(rgb);
-        const updated: CameraHold = { ...hold, color };
-        if (role === "target") {
-          setTargetHold(updated);
-          targetColor = color;
-        } else {
-          setPaletteHold(updated);
-          paletteColor = color;
-        }
-      } else if (!hold) {
+        return analyzeRgb(rgb);
+      };
+
+      if (role === "target" && targetHold && canSample) {
+        const color = await sampleHold(targetHold);
+        setTargetHold((prev) =>
+          prev && prev.imageUrl === targetHold.imageUrl
+            ? { ...prev, color }
+            : prev,
+        );
+        targetColor = color;
+        paletteColor = paletteHold?.color ?? null;
+      } else if (role === "palette" && paletteHold && canSample) {
+        const color = await sampleHold(paletteHold);
+        setPaletteHold((prev) =>
+          prev && prev.imageUrl === paletteHold.imageUrl
+            ? { ...prev, color }
+            : prev,
+        );
+        paletteColor = color;
+        targetColor = targetHold?.color ?? null;
+      } else if (!targetHold || !paletteHold) {
         await refreshLiveColors();
-        targetColor = role === "target" ? null : targetHold?.color ?? null;
-        paletteColor = role === "palette" ? null : paletteHold?.color ?? null;
+        targetColor = targetHold?.color ?? null;
+        paletteColor = paletteHold?.color ?? null;
+      } else {
+        targetColor = targetHold?.color ?? null;
+        paletteColor = paletteHold?.color ?? null;
       }
 
       const data = await fetchMatch({
@@ -395,12 +410,20 @@ export default function App() {
     return () => window.clearInterval(id);
   }, [online]);
 
+  // Revoke blob only when URL is replaced or panel unmounts — not on color-only updates.
   useEffect(() => {
+    const url = targetHold?.imageUrl;
     return () => {
-      releaseCameraHold(targetHold);
-      releaseCameraHold(paletteHold);
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [targetHold, paletteHold]);
+  }, [targetHold?.imageUrl]);
+
+  useEffect(() => {
+    const url = paletteHold?.imageUrl;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [paletteHold?.imageUrl]);
 
   const targetStatus = statusFor(streams, "target");
   const paletteStatus = statusFor(streams, "palette");

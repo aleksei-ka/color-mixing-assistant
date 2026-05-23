@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { CameraDevice, ColorPayload, RoiConfig } from "../api";
 import { LivePreview } from "./LivePreview";
 import { RoiControls } from "./RoiControls";
@@ -61,7 +61,7 @@ export function CameraPanel({
   onRoiRedraw,
   onPolygonComplete,
 }: Props) {
-  const [liveSrc, setLiveSrc] = useState("");
+  const videoRef = useRef<HTMLImageElement>(null);
   const [polygonDraft, setPolygonDraft] = useState<number[][]>([]);
 
   const options = useMemo(() => {
@@ -85,8 +85,7 @@ export function CameraPanel({
       second: "2-digit",
     });
 
-  const imageSrc = isHeld && holdImageUrl ? holdImageUrl : liveSrc;
-  const showOverlay = Boolean(imageSrc);
+  const showOverlay = isHeld ? Boolean(holdImageUrl) : true;
 
   return (
     <section className={`camera-panel ${isHeld ? "camera-panel-held" : ""}`}>
@@ -159,19 +158,25 @@ export function CameraPanel({
 
       <div className="video-wrap">
         {isHeld && holdImageUrl ? (
-          <img src={holdImageUrl} alt={`${title} (захват)`} className="video" />
+          <img
+            ref={videoRef}
+            src={holdImageUrl}
+            alt={`${title} (захват)`}
+            className="video"
+          />
         ) : (
           <LivePreview
+            ref={videoRef}
             role={role}
             deviceIndex={deviceIndex}
             streamKey={streamKey}
             paused={isHeld}
             alt={title}
-            onSrcChange={setLiveSrc}
           />
         )}
         {showOverlay && (
           <RoiOverlay
+            imageRef={videoRef}
             roi={roi}
             frameWidth={frameWidth}
             frameHeight={frameHeight}

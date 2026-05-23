@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { snapshotUrl } from "../api";
 
 type Props = {
@@ -11,14 +11,17 @@ type Props = {
 };
 
 /** Polls JPEG snapshots — works reliably through the Vite dev proxy (unlike MJPEG). */
-export function LivePreview({
+export const LivePreview = forwardRef<HTMLImageElement, Props>(function LivePreview(
+  {
   role,
   deviceIndex,
   streamKey,
   paused,
   alt,
   onSrcChange,
-}: Props) {
+},
+  ref,
+) {
   const [src, setSrc] = useState<string>("");
   const [error, setError] = useState(false);
 
@@ -72,5 +75,5 @@ export function LivePreview({
     );
   }
 
-  return <img src={src} alt={alt} className="video" />;
-}
+  return <img ref={ref} src={src} alt={alt} className="video" />;
+});
