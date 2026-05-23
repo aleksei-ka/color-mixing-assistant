@@ -3,7 +3,7 @@
   "info": {
     "title": "Color Matcher API",
     "description": "Color analysis and paint-mix hints. Cameras and ROI live in the browser; the server only receives RGB values via query parameters or JSON body.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "paths": {
     "/api/health": {
@@ -49,13 +49,108 @@
         }
       }
     },
+    "/api/palette-presets": {
+      "get": {
+        "tags": [
+          "palettes"
+        ],
+        "summary": "List server palette presets",
+        "description": "Tagged base-color sets defined in code (count / manufacturer).",
+        "operationId": "list_palette_presets_api_palette_presets_get",
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accept-Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PalettePresetsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/palette-presets/{preset_id}": {
+      "get": {
+        "tags": [
+          "palettes"
+        ],
+        "summary": "Get preset colors",
+        "operationId": "get_palette_preset_api_palette_presets__preset_id__get",
+        "parameters": [
+          {
+            "name": "preset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Preset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PalettePresetColorsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown preset id"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/base-colors": {
       "get": {
         "tags": [
           "colors"
         ],
-        "summary": "Base paint catalog",
-        "description": "Pigments from `backend/data/base_colors.json` used for mix suggestions.",
+        "summary": "Default base paint catalog",
+        "description": "Legacy alias for the default server preset (`classic-10`).",
         "operationId": "get_base_colors_api_base_colors_get",
         "responses": {
           "200": {
@@ -68,7 +163,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/analyze-rgb": {
@@ -114,12 +210,52 @@
       }
     },
     "/api/match": {
+      "post": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Match with client base colors",
+        "description": "Compare target vs palette using the active base paint set from the browser.\n\nUser-edited palettes stay on the client; only RGB triplets are sent here.",
+        "operationId": "post_match_api_match_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "match"
         ],
-        "summary": "Match target vs palette",
-        "description": "Compare two browser-sampled colors: ΔE (CIE 2000) and a mix hint from base paints.\n\nQuery aliases match the frontend: `targetR`, `targetG`, `targetB`, `paletteR`, `paletteG`, `paletteB`.",
+        "summary": "Match target vs palette (default server preset)",
+        "description": "Compare two browser-sampled colors using the default server preset.\n\nPrefer `POST /api/match` with `baseColors` when the user edits palettes locally.",
         "operationId": "get_match_api_match_get",
         "parameters": [
           {
@@ -507,6 +643,30 @@
         ],
         "title": "LabChannels"
       },
+      "MatchRequestBody": {
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/RgbBody"
+          },
+          "palette": {
+            "$ref": "#/components/schemas/RgbBody"
+          },
+          "baseColors": {
+            "items": {
+              "$ref": "#/components/schemas/BaseColorEntry"
+            },
+            "type": "array",
+            "title": "Basecolors",
+            "description": "Active base paint set from the browser (client-only storage)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "target",
+          "palette"
+        ],
+        "title": "MatchRequestBody"
+      },
       "MatchResponse": {
         "properties": {
           "deltaE": {
@@ -595,8 +755,26 @@
             "type": "boolean",
             "title": "Available"
           },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
           "deltaE_current_to_target": {
-            "type": "number",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Deltae Current To Target"
           },
           "components": {
@@ -607,18 +785,102 @@
             "title": "Components"
           },
           "legend": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Legend"
           }
         },
         "type": "object",
         "required": [
-          "available",
-          "deltaE_current_to_target",
-          "components",
-          "legend"
+          "available"
         ],
         "title": "MixSuggestion"
+      },
+      "PalettePresetColorsResponse": {
+        "properties": {
+          "presetId": {
+            "type": "string",
+            "title": "Presetid"
+          },
+          "colors": {
+            "items": {
+              "$ref": "#/components/schemas/BaseColorEntry"
+            },
+            "type": "array",
+            "title": "Colors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "presetId",
+          "colors"
+        ],
+        "title": "PalettePresetColorsResponse"
+      },
+      "PalettePresetSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "colorCount": {
+            "type": "integer",
+            "title": "Colorcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tag",
+          "category",
+          "label",
+          "description",
+          "colorCount"
+        ],
+        "title": "PalettePresetSummary"
+      },
+      "PalettePresetsResponse": {
+        "properties": {
+          "defaultPresetId": {
+            "type": "string",
+            "title": "Defaultpresetid"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/PalettePresetSummary"
+            },
+            "type": "array",
+            "title": "Presets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "defaultPresetId",
+          "presets"
+        ],
+        "title": "PalettePresetsResponse"
       },
       "RgbBody": {
         "properties": {
@@ -747,6 +1009,10 @@
     {
       "name": "colors",
       "description": "RGB → Lab/HSL/CMYK and base paint catalog."
+    },
+    {
+      "name": "palettes",
+      "description": "Server-defined base color presets (read-only, in code)."
     },
     {
       "name": "match",

@@ -59,7 +59,7 @@ API: http://127.0.0.1:8000/docs
 
 ## Базовые цвета
 
-`backend/data/base_colors.json` — дефолт для подсказки смешивания (`GET /api/base-colors`, используется в `match`).
+**Базовые краски:** пресеты на сервере (`GET /api/palette-presets`, теги: количество / производитель) и пользовательские наборы в `localStorage`. Редактирование RGB — только в браузере; в `POST /api/match` уходит активный набор (`baseColors`). Импорт/экспорт JSON в UI.
 
 Контракт API: [docs/openapi.json](docs/openapi.json) (Swagger UI: `http://127.0.0.1:8000/docs`). Обновление: `python scripts/export_openapi.py`.
 

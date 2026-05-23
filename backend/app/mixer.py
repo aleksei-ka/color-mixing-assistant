@@ -1,37 +1,29 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 from colour import delta_E
 
 from app.color import rgb_to_lab
-
-PALETTE_PATH = Path(__file__).resolve().parents[1] / "data" / "base_colors.json"
-
-
-def load_base_colors() -> list[dict]:
-    if not PALETTE_PATH.exists():
-        return []
-    with PALETTE_PATH.open(encoding="utf-8") as f:
-        return json.load(f)
+from app.palette_presets import get_default_colors
 
 
 def suggest_mix(
     target_rgb: tuple[int, int, int],
     current_rgb: tuple[int, int, int],
+    bases: Sequence[dict] | None = None,
     max_components: int = 3,
 ) -> dict:
     """
     Heuristic mix suggestion: non-negative weights on base swatches in Lab space.
     MVP — linear blend toward target, not physical paint model.
     """
-    bases = load_base_colors()
-    if not bases:
+    palette = list(bases) if bases is not None else get_default_colors()
+    if not palette:
         return {
             "available": False,
-            "message": "Добавьте базовые цвета в backend/data/base_colors.json",
+            "message": "Add base colors to the active palette set",
             "components": [],
         }
 
@@ -41,7 +33,7 @@ def suggest_mix(
     gap_norm = float(np.linalg.norm(gap))
 
     scored: list[dict] = []
-    for entry in bases:
+    for entry in palette:
         name = entry["name"]
         rgb = tuple(entry["rgb"])
         lab = np.array(rgb_to_lab(rgb))  # type: ignore[arg-type]
@@ -49,7 +41,6 @@ def suggest_mix(
         norm = float(np.linalg.norm(direction))
         if norm < 1e-6:
             continue
-        # How much this swatch moves toward target along the gap vector
         alignment = float(np.dot(direction, gap) / (norm * gap_norm + 1e-9))
         if alignment <= 0:
             continue
@@ -91,9 +82,4 @@ def suggest_mix(
             2,
         ),
         "components": top,
-        "legend": (
-            "Проценты — не объём краски. Это доли вклада трёх пигментов из "
-            "base_colors.json в сдвиг от текущего цвета палитры к образцу. "
-            "Сумма всегда 100% у показанных строк."
-        ),
     }

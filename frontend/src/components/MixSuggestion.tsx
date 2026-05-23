@@ -97,9 +97,7 @@ export function MixSuggestion({ match, error }: Props) {
               </li>
             ))}
           </ul>
-          {mix.legend && (
-            <p className="muted small mix-legend">{mix.legend}</p>
-          )}
+          <p className="muted small mix-legend">{t("mix.legend")}</p>
         </>
       )}
     </section>

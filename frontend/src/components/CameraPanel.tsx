@@ -31,7 +31,6 @@ type Props = {
   deviceId: string;
   devices: VideoInputOption[];
   panelId: "target" | "palette";
-  otherDeviceId?: string;
   hold: CameraHold | null;
   color: ColorPayload | null;
   frameWidth: number;
@@ -61,7 +60,6 @@ export function CameraPanel({
   panelId,
   deviceId,
   devices,
-  otherDeviceId,
   hold,
   color,
   frameWidth,
@@ -95,8 +93,6 @@ export function CameraPanel({
   const [localCamError, setLocalCamError] = useState<string | null>(null);
 
   const isHeld = hold !== null;
-  const sameAsOther =
-    Boolean(deviceId && otherDeviceId && deviceId === otherDeviceId);
   const cameraActive = !isHeld && Boolean(deviceId);
 
   const setFrameRef = useCallback((el: FrameSource | null) => {
@@ -200,9 +196,6 @@ export function CameraPanel({
       {localCamError && (
         <p className="camera-error muted small">{localCamError}</p>
       )}
-      {sameAsOther && !isHeld && (
-        <p className="camera-warn muted small">{t("camera.sameDeviceWarn")}</p>
-      )}
 
       <div className="camera-toolbar">
         <label className="camera-select-label">
@@ -226,7 +219,7 @@ export function CameraPanel({
         {!isHeld ? (
           <button
             type="button"
-            className="btn btn-primary camera-capture-btn"
+            className="btn btn-primary btn-sm camera-toolbar-btn"
             disabled={capturing || !deviceId}
             onClick={handleCapture}
           >
@@ -235,7 +228,7 @@ export function CameraPanel({
         ) : (
           <button
             type="button"
-            className="btn btn-secondary camera-capture-btn"
+            className="btn btn-secondary btn-sm camera-toolbar-btn"
             onClick={handleResumeLive}
           >
             {t("camera.resumeLive")}

@@ -56,8 +56,8 @@ export type CameraHold = {
 
 export type CameraRole = "target" | "palette";
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(path);
+async function getJson<T>(path: string, headers?: HeadersInit): Promise<T> {
+  const res = await fetch(path, { headers });
   if (!res.ok) {
     throw new Error(`${path} → ${res.status}`);
   }
@@ -89,26 +89,52 @@ export type MatchOverrides = {
   palette?: ColorPayload | null;
 };
 
-function colorQueryParams(
-  prefix: string,
-  color: ColorPayload | null | undefined,
-): string {
-  if (!color) return "";
-  const { r, g, b } = color.rgb;
-  return `${prefix}R=${r}&${prefix}G=${g}&${prefix}B=${b}`;
+export type BaseColorInput = {
+  name: string;
+  rgb: [number, number, number];
+};
+
+export type PalettePresetsResponse = {
+  defaultPresetId: string;
+  presets: {
+    id: string;
+    tag: string;
+    category: string;
+    label: string;
+    description: string;
+    colorCount: number;
+  }[];
+};
+
+export function fetchPalettePresets(
+  lang?: string,
+): Promise<PalettePresetsResponse> {
+  const headers: HeadersInit = {};
+  if (lang) headers["Accept-Language"] = lang;
+  return getJson("/api/palette-presets", headers);
 }
 
-export function fetchMatch(overrides: MatchOverrides): Promise<MatchResult> {
-  const q = [
-    colorQueryParams("target", overrides.target),
-    colorQueryParams("palette", overrides.palette),
-  ]
-    .filter(Boolean)
-    .join("&");
-  if (!q) {
-    return Promise.reject(new Error("Нужны цвета target и palette"));
+export function fetchPalettePresetColors(presetId: string): Promise<{
+  presetId: string;
+  colors: { name: string; rgb: [number, number, number] }[];
+}> {
+  return getJson(`/api/palette-presets/${encodeURIComponent(presetId)}`);
+}
+
+export function fetchMatch(
+  overrides: MatchOverrides,
+  baseColors: BaseColorInput[],
+): Promise<MatchResult> {
+  const target = overrides.target;
+  const palette = overrides.palette;
+  if (!target || !palette) {
+    return Promise.reject(new Error("matchNeedsColors"));
   }
-  return getJson(`/api/match?${q}`);
+  return postJson("/api/match", {
+    target: target.rgb,
+    palette: palette.rgb,
+    baseColors: baseColors.map((c) => ({ name: c.name, rgb: c.rgb })),
+  });
 }
 
 export function analyzeRgb(rgb: Rgb): Promise<ColorPayload> {

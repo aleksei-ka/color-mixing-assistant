@@ -2,19 +2,29 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.color import analyze_rgb, delta_e_2000, reading_to_dict
 from app.config import settings
-from app.mixer import load_base_colors, suggest_mix
+from app.mixer import suggest_mix
+from app.palette_presets import (
+    DEFAULT_PRESET_ID,
+    get_default_colors,
+    get_preset_colors,
+    list_preset_summaries,
+)
 from app.schemas import (
+    BaseColorEntry,
     BaseColorsResponse,
     ColorReadingResponse,
     ConfigResponse,
     HealthResponse,
+    MatchRequestBody,
     MatchResponse,
     MixSuggestion,
+    PalettePresetColorsResponse,
+    PalettePresetsResponse,
     RgbBody,
 )
 
@@ -27,7 +37,7 @@ app = FastAPI(
         "Color analysis and paint-mix hints. Cameras and ROI live in the browser; "
         "the server only receives RGB values via query parameters or JSON body."
     ),
-    version="0.2.0",
+    version="0.3.0",
     openapi_tags=[
         {
             "name": "health",
@@ -36,6 +46,10 @@ app = FastAPI(
         {
             "name": "colors",
             "description": "RGB → Lab/HSL/CMYK and base paint catalog.",
+        },
+        {
+            "name": "palettes",
+            "description": "Server-defined base color presets (read-only, in code).",
         },
         {
             "name": "match",
@@ -54,6 +68,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _lang_from_header(accept_language: str | None) -> str:
+    if accept_language and accept_language.lower().startswith("ru"):
+        return "ru"
+    return "en"
+
+
+def _bases_from_entries(entries: list[BaseColorEntry]) -> list[dict]:
+    return [{"name": e.name, "rgb": list(e.rgb)} for e in entries]
+
+
+def _build_match(
+    target_rgb: tuple[int, int, int],
+    palette_rgb: tuple[int, int, int],
+    bases: list[dict] | None,
+) -> MatchResponse:
+    target = reading_to_dict(analyze_rgb(target_rgb))
+    palette = reading_to_dict(analyze_rgb(palette_rgb))
+    mix_raw = suggest_mix(target_rgb, palette_rgb, bases=bases)
+    return MatchResponse(
+        deltaE=delta_e_2000(target_rgb, palette_rgb),
+        target=target,
+        palette=palette,
+        targetCaptured=True,
+        paletteCaptured=True,
+        mix=MixSuggestion.model_validate(mix_raw),
+    )
 
 
 @app.get(
@@ -82,14 +124,46 @@ def get_config() -> ConfigResponse:
 
 
 @app.get(
+    "/api/palette-presets",
+    tags=["palettes"],
+    summary="List server palette presets",
+    response_model=PalettePresetsResponse,
+)
+def list_palette_presets(
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> PalettePresetsResponse:
+    """Tagged base-color sets defined in code (count / manufacturer)."""
+    lang = _lang_from_header(accept_language)
+    return PalettePresetsResponse(
+        defaultPresetId=DEFAULT_PRESET_ID,
+        presets=list_preset_summaries(lang),
+    )
+
+
+@app.get(
+    "/api/palette-presets/{preset_id}",
+    tags=["palettes"],
+    summary="Get preset colors",
+    response_model=PalettePresetColorsResponse,
+    responses={404: {"description": "Unknown preset id"}},
+)
+def get_palette_preset(preset_id: str) -> PalettePresetColorsResponse:
+    colors = get_preset_colors(preset_id)
+    if not colors:
+        raise HTTPException(404, f"Unknown preset: {preset_id}")
+    return PalettePresetColorsResponse(presetId=preset_id, colors=colors)
+
+
+@app.get(
     "/api/base-colors",
     tags=["colors"],
-    summary="Base paint catalog",
+    summary="Default base paint catalog",
     response_model=BaseColorsResponse,
+    deprecated=True,
 )
 def get_base_colors() -> BaseColorsResponse:
-    """Pigments from `backend/data/base_colors.json` used for mix suggestions."""
-    return BaseColorsResponse(colors=load_base_colors())
+    """Legacy alias for the default server preset (`classic-10`)."""
+    return BaseColorsResponse(colors=get_default_colors())
 
 
 @app.post(
@@ -115,10 +189,28 @@ def _rgb_from_query(
     return r, g, b
 
 
+@app.post(
+    "/api/match",
+    tags=["match"],
+    summary="Match with client base colors",
+    response_model=MatchResponse,
+)
+def post_match(body: MatchRequestBody) -> MatchResponse:
+    """
+    Compare target vs palette using the active base paint set from the browser.
+
+    User-edited palettes stay on the client; only RGB triplets are sent here.
+    """
+    target_rgb = (body.target.r, body.target.g, body.target.b)
+    palette_rgb = (body.palette.r, body.palette.g, body.palette.b)
+    bases = _bases_from_entries(body.base_colors) if body.base_colors else None
+    return _build_match(target_rgb, palette_rgb, bases)
+
+
 @app.get(
     "/api/match",
     tags=["match"],
-    summary="Match target vs palette",
+    summary="Match target vs palette (default server preset)",
     response_model=MatchResponse,
     responses={
         400: {
@@ -177,9 +269,9 @@ def get_match(
     ),
 ) -> MatchResponse:
     """
-    Compare two browser-sampled colors: ΔE (CIE 2000) and a mix hint from base paints.
+    Compare two browser-sampled colors using the default server preset.
 
-    Query aliases match the frontend: `targetR`, `targetG`, `targetB`, `paletteR`, `paletteG`, `paletteB`.
+    Prefer `POST /api/match` with `baseColors` when the user edits palettes locally.
     """
     target_rgb = _rgb_from_query(target_r, target_g, target_b)
     palette_rgb = _rgb_from_query(palette_r, palette_g, palette_b)
@@ -188,17 +280,4 @@ def get_match(
             400,
             "Provide targetR/G/B and paletteR/G/B (colors are sampled in the browser)",
         )
-
-    target = reading_to_dict(analyze_rgb(target_rgb))
-    palette = reading_to_dict(analyze_rgb(palette_rgb))
-    t_rgb = (target_rgb[0], target_rgb[1], target_rgb[2])
-    p_rgb = (palette_rgb[0], palette_rgb[1], palette_rgb[2])
-    mix_raw = suggest_mix(t_rgb, p_rgb)
-    return MatchResponse(
-        deltaE=delta_e_2000(t_rgb, p_rgb),
-        target=target,
-        palette=palette,
-        targetCaptured=True,
-        paletteCaptured=True,
-        mix=MixSuggestion.model_validate(mix_raw),
-    )
+    return _build_match(target_rgb, palette_rgb, bases=None)

@@ -14,9 +14,11 @@ import {
 import { CameraPanel } from "./components/CameraPanel";
 import { ColorInfo } from "./components/ColorInfo";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
+import { BaseColorsPanel } from "./components/BaseColorsPanel";
 import { MixSuggestion } from "./components/MixSuggestion";
 import { useTranslation } from "./i18n/I18nProvider";
 import { useMediaDevices } from "./hooks/useMediaDevices";
+import { usePaletteManager } from "./hooks/usePaletteManager";
 
 const STORAGE_TARGET_DEVICE = "colorMatcher.device.target";
 const STORAGE_PALETTE_DEVICE = "colorMatcher.device.palette";
@@ -51,7 +53,8 @@ function defaultRoi(size: number): RoiConfig {
 }
 
 export default function App() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
+  const basePalette = usePaletteManager(lang);
   const [online, setOnline] = useState(false);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [match, setMatch] = useState<MatchResult | null>(null);
@@ -84,19 +87,32 @@ export default function App() {
 
   const refreshMatch = useCallback(async () => {
     const target = targetHold?.color ?? liveTarget;
-    const palette = paletteHold?.color ?? livePalette;
-    if (!target || !palette) {
+    const paletteColor = paletteHold?.color ?? livePalette;
+    if (!target || !paletteColor) {
       setMatch(null);
       return;
     }
     try {
-      const data = await fetchMatch({ target, palette });
+      const data = await fetchMatch(
+        { target, palette: paletteColor },
+        basePalette.activeColors,
+      );
       setMatch(data);
       setMatchError(null);
     } catch (e) {
-      setMatchError(e instanceof Error ? e.message : t("errors.api"));
+      const msg = e instanceof Error ? e.message : "";
+      setMatchError(
+        msg === "matchNeedsColors" ? t("errors.matchNeedsColors") : t("errors.api"),
+      );
     }
-  }, [targetHold, paletteHold, liveTarget, livePalette, t]);
+  }, [
+    targetHold,
+    paletteHold,
+    liveTarget,
+    livePalette,
+    basePalette.activeColors,
+    t,
+  ]);
 
   useEffect(() => {
     fetchHealth()
@@ -310,7 +326,6 @@ export default function App() {
           panelId="target"
           deviceId={targetDeviceId}
           devices={devices}
-          otherDeviceId={paletteDeviceId}
           hold={targetHold}
           color={targetDisplayColor}
           frameWidth={targetFrame.w}
@@ -333,7 +348,6 @@ export default function App() {
           panelId="palette"
           deviceId={paletteDeviceId}
           devices={devices}
-          otherDeviceId={targetDeviceId}
           hold={paletteHold}
           color={paletteDisplayColor}
           frameWidth={paletteFrame.w}
@@ -355,18 +369,24 @@ export default function App() {
 
       <section className="grid codes">
         <ColorInfo
-          label={
-            targetHold ? t("color.targetHeld") : t("color.targetLive")
-          }
+          panelKey="target"
+          title={targetHold ? t("color.targetHeld") : t("color.targetLive")}
           color={targetDisplayColor}
         />
         <ColorInfo
-          label={
+          panelKey="palette"
+          title={
             paletteHold ? t("color.paletteHeld") : t("color.paletteLive")
           }
           color={paletteDisplayColor}
         />
       </section>
+
+      <BaseColorsPanel
+        palette={basePalette}
+        targetColor={targetDisplayColor}
+        paletteColor={paletteDisplayColor}
+      />
 
       <MixSuggestion match={match} error={matchError} />
     </div>

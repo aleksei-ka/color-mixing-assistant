@@ -81,9 +81,45 @@ class MixComponent(BaseModel):
 
 class MixSuggestion(BaseModel):
     available: bool
-    delta_e_current_to_target: float = Field(alias="deltaE_current_to_target")
-    components: list[MixComponent]
-    legend: str
+    message: str | None = None
+    delta_e_current_to_target: float | None = Field(
+        default=None, alias="deltaE_current_to_target"
+    )
+    components: list[MixComponent] = Field(default_factory=list)
+    legend: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PalettePresetSummary(BaseModel):
+    id: str
+    tag: str
+    category: str
+    label: str
+    description: str
+    color_count: int = Field(alias="colorCount")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PalettePresetsResponse(BaseModel):
+    default_preset_id: str = Field(alias="defaultPresetId")
+    presets: list[PalettePresetSummary]
+
+
+class PalettePresetColorsResponse(BaseModel):
+    preset_id: str = Field(alias="presetId")
+    colors: list[BaseColorEntry]
+
+
+class MatchRequestBody(BaseModel):
+    target: RgbBody
+    palette: RgbBody
+    base_colors: list[BaseColorEntry] = Field(
+        default_factory=list,
+        alias="baseColors",
+        description="Active base paint set from the browser (client-only storage).",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
