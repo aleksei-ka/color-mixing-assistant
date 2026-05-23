@@ -300,6 +300,7 @@ export default function App() {
 
       <main className="grid cameras">
         <CameraPanel
+          key="camera-panel-target"
           title="Камера 1 — цель"
           subtitle="Миниатюра / образец цвета"
           panelId="target"
@@ -324,6 +325,7 @@ export default function App() {
           onPolygonComplete={(pts) => handlePolygonComplete("target", pts)}
         />
         <CameraPanel
+          key="camera-panel-palette"
           title="Камера 2 — палитра"
           subtitle="Текущий цвет на палитре"
           panelId="palette"

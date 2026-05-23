@@ -199,8 +199,8 @@ export function CameraPanel({
       )}
       {sameAsOther && !isHeld && (
         <p className="camera-warn muted small">
-          Та же камера, что и в другой панели — общий поток (можно сравнивать
-          захват и live).
+          Выбрано то же устройство, что и в другой панели — часто работает только
+          одно видео. Назначьте разные камеры.
         </p>
       )}
 
@@ -218,6 +218,7 @@ export function CameraPanel({
             {devices.map((d) => (
               <option key={`${panelId}-${d.deviceId}`} value={d.deviceId}>
                 {d.label}
+                {devices.length > 1 ? ` · ${d.deviceId.slice(0, 6)}` : ""}
               </option>
             ))}
           </select>
@@ -267,7 +268,9 @@ export function CameraPanel({
           />
         ) : deviceId ? (
           <BrowserCamera
+            key={`${panelId}-${deviceId}`}
             ref={cameraRef}
+            panelId={panelId}
             deviceId={deviceId}
             active={cameraActive}
             alt={title}

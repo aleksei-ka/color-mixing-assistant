@@ -5,12 +5,9 @@ import {
   useRef,
   type Ref,
 } from "react";
-import {
-  acquireCameraStream,
-  releaseCameraStream,
-} from "../hooks/cameraStreamPool";
 
 type Props = {
+  panelId: string;
   deviceId: string;
   active: boolean;
   alt: string;
@@ -24,10 +21,11 @@ export type BrowserCameraHandle = {
 };
 
 export const BrowserCamera = forwardRef(function BrowserCamera(
-  { deviceId, active, alt, onReady, onError, onVideoMount }: Props,
+  { panelId, deviceId, active, alt, onReady, onError, onVideoMount }: Props,
   ref: Ref<BrowserCameraHandle>,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
   const onVideoMountRef = useRef(onVideoMount);
@@ -41,39 +39,65 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
   }));
 
   useEffect(() => {
-    if (!active || !deviceId) {
-      onVideoMountRef.current?.(null);
-      return;
-    }
-
-    let cancelled = false;
-    let loadedHandler: (() => void) | null = null;
-    let boundDeviceId = "";
-
-    const detachVideo = () => {
+    const stopStream = () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
       const video = videoRef.current;
-      if (video && loadedHandler) {
-        video.removeEventListener("loadeddata", loadedHandler);
-        loadedHandler = null;
-      }
       if (video) {
         video.srcObject = null;
       }
       onVideoMountRef.current?.(null);
     };
 
+    if (!active || !deviceId) {
+      stopStream();
+      return;
+    }
+
+    let cancelled = false;
+    let loadedHandler: (() => void) | null = null;
+
+    const detachListeners = () => {
+      const video = videoRef.current;
+      if (video && loadedHandler) {
+        video.removeEventListener("loadeddata", loadedHandler);
+        loadedHandler = null;
+      }
+    };
+
     const start = async () => {
+      stopStream();
+
       try {
-        const stream = await acquireCameraStream(deviceId);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+
         if (cancelled) {
-          releaseCameraStream(deviceId);
+          stream.getTracks().forEach((t) => t.stop());
           return;
         }
-        boundDeviceId = deviceId;
 
+        const track = stream.getVideoTracks()[0];
+        const openedId = track?.getSettings().deviceId;
+        if (openedId && openedId !== deviceId) {
+          stream.getTracks().forEach((t) => t.stop());
+          onErrorRef.current?.(
+            `Браузер открыл другое устройство. Попробуйте закрыть другие вкладки с камерой (${panelId}).`,
+          );
+          return;
+        }
+
+        streamRef.current = stream;
         const video = videoRef.current;
         if (!video) {
-          releaseCameraStream(deviceId);
+          stream.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
           return;
         }
 
@@ -96,8 +120,10 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
         }
       } catch (e) {
         if (cancelled) return;
+        const msg =
+          e instanceof Error ? e.message : "Не удалось открыть камеру";
         onErrorRef.current?.(
-          e instanceof Error ? e.message : "Не удалось открыть камеру",
+          `${msg} (панель ${panelId}). Если камера занята — выберите другое устройство.`,
         );
       }
     };
@@ -106,12 +132,10 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 
     return () => {
       cancelled = true;
-      detachVideo();
-      if (boundDeviceId) {
-        releaseCameraStream(boundDeviceId);
-      }
+      detachListeners();
+      stopStream();
     };
-  }, [deviceId, active]);
+  }, [panelId, deviceId, active]);
 
   return (
     <video

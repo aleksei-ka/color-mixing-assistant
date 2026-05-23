@@ -31,11 +31,19 @@ export function useMediaDevices() {
     try {
       await ensureCameraPermission();
       const all = await navigator.mediaDevices.enumerateDevices();
+      const seen = new Set<string>();
       const video = all
         .filter((d) => d.kind === "videoinput" && d.deviceId)
+        .filter((d) => {
+          if (seen.has(d.deviceId)) return false;
+          seen.add(d.deviceId);
+          return true;
+        })
         .map((d, i) => ({
           deviceId: d.deviceId,
-          label: d.label || `Камера ${i + 1}`,
+          label: d.label?.trim()
+            ? d.label.trim()
+            : `Камера ${i + 1}`,
         }));
       setDevices(video);
       if (video.length === 0) {
