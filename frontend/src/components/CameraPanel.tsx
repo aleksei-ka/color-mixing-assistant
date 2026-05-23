@@ -76,44 +76,40 @@ export function CameraPanel({
         </div>
       </header>
 
-      <label className="camera-select-label">
-        Устройство
-        <select
-          value={deviceIndex}
-          disabled={isHeld}
-          onChange={(e) => onDeviceChange(Number(e.target.value))}
-        >
-          {options.map((d) => (
-            <option key={d.index} value={d.index}>
-              Камера {d.index}
-              {d.width > 0 ? ` (${d.width}×${d.height})` : ""}
-              {d.inUse ? " · в работе" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="camera-actions">
+      <div className="camera-toolbar">
+        <label className="camera-select-label">
+          Устройство
+          <select
+            value={deviceIndex}
+            disabled={isHeld}
+            onChange={(e) => onDeviceChange(Number(e.target.value))}
+          >
+            {options.map((d) => (
+              <option key={d.index} value={d.index}>
+                Камера {d.index}
+                {d.width > 0 ? ` (${d.width}×${d.height})` : ""}
+                {d.inUse ? " · в работе" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
         {!isHeld ? (
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary camera-capture-btn"
             disabled={capturing}
             onClick={onCapture}
           >
-            {capturing ? "Захват…" : "Захватить цвет"}
+            {capturing ? "Захват…" : "Захватить"}
           </button>
         ) : (
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary camera-capture-btn"
             onClick={onResumeLive}
           >
             Снова live
           </button>
-        )}
-        {isHeld && timeLabel && (
-          <span className="muted small">захват {timeLabel}</span>
         )}
       </div>
 
@@ -135,12 +131,22 @@ export function CameraPanel({
             : "Подведите нужный цвет в центральный квадрат"}
         </p>
       </div>
+
       {color && (
         <div
           className="swatch"
           style={{ backgroundColor: color.hex }}
-          title={color.hex}
-        />
+        >
+          <span className="swatch-caption">
+            <code className="swatch-hex">{color.hex}</code>
+            {isHeld && timeLabel && (
+              <span className="swatch-capture">
+                {" "}
+                · захват {timeLabel}
+              </span>
+            )}
+          </span>
+        </div>
       )}
     </section>
   );
