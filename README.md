@@ -61,6 +61,18 @@ API: http://127.0.0.1:8000/docs
 
 `backend/data/base_colors.json` — дефолт для подсказки смешивания (`GET /api/base-colors`, используется в `match`).
 
-## Ветка feature/browser-cameras
+## Тесты
 
-Бэкенд не открывает USB и не отдаёт snapshot. Подробности: [onlineCam.md](onlineCam.md).
+```powershell
+.\scripts\test.ps1
+```
+
+Или отдельно: `cd backend` → `pytest` · `cd frontend` → `npm test`.
+
+## Языки UI
+
+Русский и английский: переключатель в шапке, авто по языку браузера (`localStorage`: `colorMatcher.lang`).
+
+## Камеры в браузере
+
+Бэкенд не открывает USB. Подробности: [onlineCam.md](onlineCam.md).

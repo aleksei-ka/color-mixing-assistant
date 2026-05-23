@@ -1,8 +1,12 @@
 [
-  { "name": "Cadmium Red", "rgb": [227, 38, 54] },
-  { "name": "Cadmium Yellow", "rgb": [255, 218, 3] },
+  { "name": "Cadmium Red Medium", "rgb": [227, 38, 54] },
+  { "name": "Cadmium Yellow Medium", "rgb": [255, 218, 3] },
   { "name": "Ultramarine", "rgb": [18, 10, 143] },
-  { "name": "Phthalo Green", "rgb": [0, 130, 92] },
+  { "name": "Phthalo Green (Blue Shade)", "rgb": [0, 130, 92] },
   { "name": "Titanium White", "rgb": [245, 245, 240] },
-  { "name": "Ivory Black", "rgb": [41, 36, 33] }
+  { "name": "Ivory Black", "rgb": [41, 36, 33] },
+  { "name": "Yellow Ochre", "rgb": [203, 169, 86] },
+  { "name": "Burnt Sienna", "rgb": [138, 54, 15] },
+  { "name": "Raw Umber", "rgb": [99, 74, 43] },
+  { "name": "Dioxazine Purple", "rgb": [55, 5, 85] }
 ]

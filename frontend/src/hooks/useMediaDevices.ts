@@ -5,6 +5,11 @@ export type VideoInputOption = {
   label: string;
 };
 
+export type DevicesErrorCode =
+  | "noMediaDevices"
+  | "noCameras"
+  | "deviceListFailed";
+
 async function ensureCameraPermission(): Promise<boolean> {
   if (!navigator.mediaDevices?.getUserMedia) return false;
   try {
@@ -19,15 +24,15 @@ async function ensureCameraPermission(): Promise<boolean> {
 export function useMediaDevices() {
   const [devices, setDevices] = useState<VideoInputOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<DevicesErrorCode | null>(null);
 
   const refresh = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) {
-      setError("Браузер не поддерживает доступ к камерам");
+      setErrorCode("noMediaDevices");
       return;
     }
     setLoading(true);
-    setError(null);
+    setErrorCode(null);
     try {
       await ensureCameraPermission();
       const all = await navigator.mediaDevices.enumerateDevices();
@@ -43,14 +48,14 @@ export function useMediaDevices() {
           deviceId: d.deviceId,
           label: d.label?.trim()
             ? d.label.trim()
-            : `Камера ${i + 1}`,
+            : `Camera ${i + 1}`,
         }));
       setDevices(video);
       if (video.length === 0) {
-        setError("Камеры не найдены");
+        setErrorCode("noCameras");
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось получить список камер");
+    } catch {
+      setErrorCode("deviceListFailed");
     } finally {
       setLoading(false);
     }
@@ -60,5 +65,5 @@ export function useMediaDevices() {
     void refresh();
   }, [refresh]);
 
-  return { devices, loading, error, refresh };
+  return { devices, loading, errorCode, refresh };
 }

@@ -45,6 +45,16 @@ body {
   gap: 0.35rem;
 }
 
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lang-switch select {
+  font-size: 0.85rem;
+}
+
 .topbar-cam-row {
   display: flex;
   flex-wrap: wrap;

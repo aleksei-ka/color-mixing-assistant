@@ -13,7 +13,9 @@ import {
 } from "./api";
 import { CameraPanel } from "./components/CameraPanel";
 import { ColorInfo } from "./components/ColorInfo";
+import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { MixSuggestion } from "./components/MixSuggestion";
+import { useTranslation } from "./i18n/I18nProvider";
 import { useMediaDevices } from "./hooks/useMediaDevices";
 
 const STORAGE_TARGET_DEVICE = "colorMatcher.device.target";
@@ -49,6 +51,7 @@ function defaultRoi(size: number): RoiConfig {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const [online, setOnline] = useState(false);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [match, setMatch] = useState<MatchResult | null>(null);
@@ -68,7 +71,7 @@ export default function App() {
   const [roiTarget, setRoiTarget] = useState<RoiConfig | null>(null);
   const [roiPalette, setRoiPalette] = useState<RoiConfig | null>(null);
 
-  const { devices, loading: devicesLoading, error: devicesError, refresh } =
+  const { devices, loading: devicesLoading, errorCode, refresh } =
     useMediaDevices();
   const devicesAssigned = useRef(false);
 
@@ -91,9 +94,9 @@ export default function App() {
       setMatch(data);
       setMatchError(null);
     } catch (e) {
-      setMatchError(e instanceof Error ? e.message : "Ошибка API");
+      setMatchError(e instanceof Error ? e.message : t("errors.api"));
     }
-  }, [targetHold, paletteHold, liveTarget, livePalette]);
+  }, [targetHold, paletteHold, liveTarget, livePalette, t]);
 
   useEffect(() => {
     fetchHealth()
@@ -268,14 +271,13 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div>
-          <h1>Color Matcher</h1>
-          <p className="muted">
-            Камеры в браузере · сравнение и смешивание через API
-          </p>
+          <h1>{t("app.title")}</h1>
+          <p className="muted">{t("app.subtitle")}</p>
         </div>
         <div className="topbar-meta">
+          <LanguageSwitcher />
           <span className={`badge ${online ? "badge-ok" : "badge-off"}`}>
-            API {online ? "online" : "offline"}
+            API {online ? t("app.apiOnline") : t("app.apiOffline")}
           </span>
           <button
             type="button"
@@ -283,26 +285,28 @@ export default function App() {
             disabled={devicesLoading}
             onClick={refresh}
           >
-            {devicesLoading ? "Поиск…" : "Обновить список камер"}
+            {devicesLoading
+              ? t("app.refreshingCameras")
+              : t("app.refreshCameras")}
           </button>
         </div>
       </header>
 
       {!online && (
         <div className="banner banner-warn">
-          Запустите бэкенд: <code>.\scripts\start-backend.ps1</code>
+          {t("app.backendBanner", {
+            cmd: ".\\scripts\\start-backend.ps1",
+          })}
         </div>
       )}
 
-      {devicesError && (
-        <div className="banner banner-warn">{devicesError}</div>
+      {errorCode && (
+        <div className="banner banner-warn">{t(`errors.${errorCode}`)}</div>
       )}
 
       <main className="grid cameras">
         <CameraPanel
           key="camera-panel-target"
-          title="Камера 1 — цель"
-          subtitle="Миниатюра / образец цвета"
           panelId="target"
           deviceId={targetDeviceId}
           devices={devices}
@@ -326,8 +330,6 @@ export default function App() {
         />
         <CameraPanel
           key="camera-panel-palette"
-          title="Камера 2 — палитра"
-          subtitle="Текущий цвет на палитре"
           panelId="palette"
           deviceId={paletteDeviceId}
           devices={devices}
@@ -354,13 +356,13 @@ export default function App() {
       <section className="grid codes">
         <ColorInfo
           label={
-            targetHold ? "Камера 1 — захваченный цвет" : "Камера 1 — live"
+            targetHold ? t("color.targetHeld") : t("color.targetLive")
           }
           color={targetDisplayColor}
         />
         <ColorInfo
           label={
-            paletteHold ? "Камера 2 — захваченный цвет" : "Камера 2 — live"
+            paletteHold ? t("color.paletteHeld") : t("color.paletteLive")
           }
           color={paletteDisplayColor}
         />

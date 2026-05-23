@@ -1,0 +1,80 @@
+{
+  "app": {
+    "title": "Color Matcher",
+    "subtitle": "Камеры в браузере · сравнение и смешивание через API",
+    "apiOnline": "API online",
+    "apiOffline": "API offline",
+    "refreshCameras": "Обновить список камер",
+    "refreshingCameras": "Поиск…",
+    "backendBanner": "Запустите бэкенд: {{cmd}}",
+    "langLabel": "Язык"
+  },
+  "camera": {
+    "targetTitle": "Камера 1 — цель",
+    "targetSubtitle": "Миниатюра / образец цвета",
+    "paletteTitle": "Камера 2 — палитра",
+    "paletteSubtitle": "Текущий цвет на палитре",
+    "device": "Устройство",
+    "selectCamera": "— выберите камеру —",
+    "cameraFallback": "Камера {{n}}",
+    "capture": "Захватить",
+    "capturing": "Захват…",
+    "resumeLive": "Снова live",
+    "live": "live",
+    "held": "захват",
+    "captureAt": "захват {{time}}",
+    "sameDeviceWarn": "Выбрано то же устройство, что и в другой панели — часто работает только одно видео. Назначьте разные камеры.",
+    "placeholder": "Выберите камеру и разрешите доступ в браузере",
+    "heldHint": "Снимок — сравните фигурку с цветом на экране",
+    "roiHintLive": "Область отбора цвета на кадре",
+    "roiHintPolygon": "Отметьте точки на кадре",
+    "heldAlt": "{{title}} (захват)"
+  },
+  "roi": {
+    "region": "Область",
+    "square": "Квадрат",
+    "polygon": "По точкам",
+    "size": "Размер",
+    "reset": "↺ Сброс",
+    "resetTitle": "Сбросить к {{size}} px",
+    "polygonClosed": "Произвольная область выбрана.",
+    "polygonOpen": "Кликните точки на кадре. Замкните кликом по первой точке.",
+    "redraw": "Рисовать заново"
+  },
+  "color": {
+    "targetLive": "Камера 1 — live",
+    "targetHeld": "Камера 1 — захваченный цвет",
+    "paletteLive": "Камера 2 — live",
+    "paletteHeld": "Камера 2 — захваченный цвет"
+  },
+  "mix": {
+    "title": "Смешивание и сравнение",
+    "loading": "Загрузка…",
+    "sources": "Цель: {{target}} · Палитра: {{palette}}",
+    "sourceCaptured": "{{role}} (захват)",
+    "sourceLive": "{{role}} (live)",
+    "camera1": "камера 1",
+    "camera2": "камера 2",
+    "deltaE": "ΔE (палитра ↔ цель):",
+    "deltaEHint": "Насколько отличаются цвета для глаза: <2 — почти совпадают, 2–5 — заметно, >10 — сильно разные.",
+    "noBases": "Нет базовых цветов",
+    "pigmentsTitle": "Какие пигменты добавить к палитре",
+    "pigmentsIntro": "Список — до трёх красок из вашего набора, которые сильнее всего сдвигают текущий цвет палитры к образцу. Проценты — важность, а не точные объёмы.",
+    "startWith": "Начните с {{name}} ({{percent}}%) — добавляйте понемногу и снова снимайте палитру.",
+    "contribution": "вклад ~{{percent}}%",
+    "hintMain": "главный пигмент для сдвига к образцу",
+    "hintExtra": "дополнительно"
+  },
+  "errors": {
+    "api": "Ошибка API",
+    "matchNeedsColors": "Нужны цвета target и palette",
+    "noCameras": "Камеры не найдены",
+    "noMediaDevices": "Браузер не поддерживает доступ к камерам",
+    "deviceListFailed": "Не удалось получить список камер",
+    "frameNotReady": "Кадр ещё не готов",
+    "canvasUnavailable": "Canvas недоступен",
+    "captureFailed": "Не удалось сохранить кадр",
+    "videoNotReady": "Видео ещё не готово",
+    "loadSnapshotFailed": "Не удалось загрузить снимок"
+  }
+}

@@ -19,6 +19,7 @@ import {
   type FrameSource,
 } from "../utils/frameSource";
 import { sampleRgbFromFrame } from "../utils/sampleImageColor";
+import { useTranslation } from "../i18n/I18nProvider";
 import {
   BrowserCamera,
   type BrowserCameraHandle,
@@ -27,8 +28,6 @@ import { RoiControls } from "./RoiControls";
 import { RoiOverlay } from "./RoiOverlay";
 
 type Props = {
-  title: string;
-  subtitle: string;
   deviceId: string;
   devices: VideoInputOption[];
   panelId: "target" | "palette";
@@ -39,7 +38,6 @@ type Props = {
   frameHeight: number;
   defaultRoiSize: number;
   roi: RoiConfig;
-  cameraError?: string | null;
   onDeviceIdChange: (deviceId: string) => void;
   onFrameSize: (width: number, height: number) => void;
   onHoldChange: Dispatch<SetStateAction<CameraHold | null>>;
@@ -60,8 +58,6 @@ function roiCanSample(roi: RoiConfig): boolean {
 }
 
 export function CameraPanel({
-  title,
-  subtitle,
   panelId,
   deviceId,
   devices,
@@ -72,7 +68,6 @@ export function CameraPanel({
   frameHeight,
   defaultRoiSize,
   roi,
-  cameraError,
   onDeviceIdChange,
   onFrameSize,
   onHoldChange,
@@ -84,6 +79,14 @@ export function CameraPanel({
   onRoiRedraw,
   onPolygonComplete,
 }: Props) {
+  const { t, lang } = useTranslation();
+  const title =
+    panelId === "target" ? t("camera.targetTitle") : t("camera.paletteTitle");
+  const subtitle =
+    panelId === "target"
+      ? t("camera.targetSubtitle")
+      : t("camera.paletteSubtitle");
+
   const cameraRef = useRef<BrowserCameraHandle>(null);
   const frameRef = useRef<FrameSource | null>(null);
   const holdImgRef = useRef<HTMLImageElement>(null);
@@ -156,7 +159,9 @@ export function CameraPanel({
       });
       onLiveColor(null);
     } catch (e) {
-      setLocalCamError(e instanceof Error ? e.message : "Ошибка захвата");
+      setLocalCamError(
+        e instanceof Error ? e.message : t("errors.captureFailed"),
+      );
     } finally {
       setCapturing(false);
     }
@@ -168,7 +173,7 @@ export function CameraPanel({
 
   const timeLabel =
     hold?.capturedAt &&
-    new Date(hold.capturedAt).toLocaleTimeString("ru-RU", {
+    new Date(hold.capturedAt).toLocaleTimeString(lang === "ru" ? "ru-RU" : "en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -185,28 +190,23 @@ export function CameraPanel({
         </div>
         <div className="camera-panel-badges">
           {!isHeld ? (
-            <span className="badge badge-live">live</span>
+            <span className="badge badge-live">{t("camera.live")}</span>
           ) : (
-            <span className="badge badge-held">захват</span>
+            <span className="badge badge-held">{t("camera.held")}</span>
           )}
         </div>
       </header>
 
-      {(cameraError || localCamError) && (
-        <p className="camera-error muted small">
-          {cameraError || localCamError}
-        </p>
+      {localCamError && (
+        <p className="camera-error muted small">{localCamError}</p>
       )}
       {sameAsOther && !isHeld && (
-        <p className="camera-warn muted small">
-          Выбрано то же устройство, что и в другой панели — часто работает только
-          одно видео. Назначьте разные камеры.
-        </p>
+        <p className="camera-warn muted small">{t("camera.sameDeviceWarn")}</p>
       )}
 
       <div className="camera-toolbar">
         <label className="camera-select-label">
-          <span className="camera-select-title">Устройство</span>
+          <span className="camera-select-title">{t("camera.device")}</span>
           <select
             id={`camera-select-${panelId}`}
             name={`camera-select-${panelId}`}
@@ -214,7 +214,7 @@ export function CameraPanel({
             disabled={isHeld}
             onChange={(e) => onDeviceIdChange(e.target.value)}
           >
-            <option value="">— выберите камеру —</option>
+            <option value="">{t("camera.selectCamera")}</option>
             {devices.map((d) => (
               <option key={`${panelId}-${d.deviceId}`} value={d.deviceId}>
                 {d.label}
@@ -230,7 +230,7 @@ export function CameraPanel({
             disabled={capturing || !deviceId}
             onClick={handleCapture}
           >
-            {capturing ? "Захват…" : "Захватить"}
+            {capturing ? t("camera.capturing") : t("camera.capture")}
           </button>
         ) : (
           <button
@@ -238,7 +238,7 @@ export function CameraPanel({
             className="btn btn-secondary camera-capture-btn"
             onClick={handleResumeLive}
           >
-            Снова live
+            {t("camera.resumeLive")}
           </button>
         )}
       </div>
@@ -263,7 +263,7 @@ export function CameraPanel({
               setFrameRef(el);
             }}
             src={hold.imageUrl}
-            alt={`${title} (захват)`}
+            alt={t("camera.heldAlt", { title })}
             className="video"
           />
         ) : deviceId ? (
@@ -280,7 +280,7 @@ export function CameraPanel({
           />
         ) : (
           <div className="video video-placeholder">
-            Выберите камеру и разрешите доступ в браузере
+            {t("camera.placeholder")}
           </div>
         )}
         {showOverlay && (
@@ -298,10 +298,10 @@ export function CameraPanel({
         )}
         <p className="roi-hint">
           {isHeld
-            ? "Снимок — сравните фигурку с цветом на экране"
+            ? t("camera.heldHint")
             : roi.mode === "polygon" && !roi.polygonClosed
-              ? "Отметьте точки на кадре"
-              : "Область отбора цвета на кадре"}
+              ? t("camera.roiHintPolygon")
+              : t("camera.roiHintLive")}
         </p>
       </div>
 
@@ -310,7 +310,10 @@ export function CameraPanel({
           <span className="swatch-caption">
             <code className="swatch-hex">{color.hex}</code>
             {isHeld && timeLabel && (
-              <span className="swatch-capture"> · захват {timeLabel}</span>
+              <span className="swatch-capture">
+                {" "}
+                · {t("camera.captureAt", { time: timeLabel })}
+              </span>
             )}
           </span>
         </div>

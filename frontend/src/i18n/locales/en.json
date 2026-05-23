@@ -1,0 +1,80 @@
+{
+  "app": {
+    "title": "Color Matcher",
+    "subtitle": "Browser cameras · comparison and mix via API",
+    "apiOnline": "API online",
+    "apiOffline": "API offline",
+    "refreshCameras": "Refresh camera list",
+    "refreshingCameras": "Searching…",
+    "backendBanner": "Start the backend: {{cmd}}",
+    "langLabel": "Language"
+  },
+  "camera": {
+    "targetTitle": "Camera 1 — target",
+    "targetSubtitle": "Miniature / color sample",
+    "paletteTitle": "Camera 2 — palette",
+    "paletteSubtitle": "Current color on the palette",
+    "device": "Device",
+    "selectCamera": "— select camera —",
+    "cameraFallback": "Camera {{n}}",
+    "capture": "Capture",
+    "capturing": "Capturing…",
+    "resumeLive": "Back to live",
+    "live": "live",
+    "held": "capture",
+    "captureAt": "capture {{time}}",
+    "sameDeviceWarn": "Same device as the other panel — often only one video works. Pick different cameras.",
+    "placeholder": "Select a camera and allow access in the browser",
+    "heldHint": "Snapshot — compare the marker with the color on screen",
+    "roiHintLive": "Color sampling region on the frame",
+    "roiHintPolygon": "Mark points on the frame",
+    "heldAlt": "{{title}} (capture)"
+  },
+  "roi": {
+    "region": "Region",
+    "square": "Square",
+    "polygon": "By points",
+    "size": "Size",
+    "reset": "↺ Reset",
+    "resetTitle": "Reset to {{size}} px",
+    "polygonClosed": "Custom region selected.",
+    "polygonOpen": "Click points on the frame. Close by clicking the first point.",
+    "redraw": "Redraw"
+  },
+  "color": {
+    "targetLive": "Camera 1 — live",
+    "targetHeld": "Camera 1 — captured",
+    "paletteLive": "Camera 2 — live",
+    "paletteHeld": "Camera 2 — captured"
+  },
+  "mix": {
+    "title": "Mixing and comparison",
+    "loading": "Loading…",
+    "sources": "Target: {{target}} · Palette: {{palette}}",
+    "sourceCaptured": "{{role}} (capture)",
+    "sourceLive": "{{role}} (live)",
+    "camera1": "camera 1",
+    "camera2": "camera 2",
+    "deltaE": "ΔE (palette ↔ target):",
+    "deltaEHint": "Visual difference: <2 — almost match, 2–5 — noticeable, >10 — very different.",
+    "noBases": "No base colors",
+    "pigmentsTitle": "Which pigments to add to the palette",
+    "pigmentsIntro": "Up to three paints from your set that best shift the current palette color toward the sample. Percents are relative importance, not exact volumes.",
+    "startWith": "Start with {{name}} ({{percent}}%) — add gradually and re-sample the palette.",
+    "contribution": "contribution ~{{percent}}%",
+    "hintMain": "main pigment toward the sample",
+    "hintExtra": "additional"
+  },
+  "errors": {
+    "api": "API error",
+    "matchNeedsColors": "Target and palette colors are required",
+    "noCameras": "No cameras found",
+    "noMediaDevices": "Browser does not support camera access",
+    "deviceListFailed": "Failed to list cameras",
+    "frameNotReady": "Frame not ready",
+    "canvasUnavailable": "Canvas unavailable",
+    "captureFailed": "Capture failed",
+    "videoNotReady": "Video not ready yet",
+    "loadSnapshotFailed": "Failed to load snapshot"
+  }
+}

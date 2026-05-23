@@ -1,4 +1,5 @@
 import type { RoiConfig } from "../api";
+import { useTranslation } from "../i18n/I18nProvider";
 
 type Props = {
   roi: RoiConfig;
@@ -17,6 +18,7 @@ export function RoiControls({
   onReset,
   onRedraw,
 }: Props) {
+  const { t } = useTranslation();
   const isPolygon = roi.mode === "polygon";
   const polygonClosed = roi.polygonClosed;
 
@@ -24,22 +26,22 @@ export function RoiControls({
     <div className="roi-controls">
       <div className="roi-mode-row">
         <label className="roi-mode-label">
-          <span className="roi-mode-title">Область</span>
+          <span className="roi-mode-title">{t("roi.region")}</span>
           <select
             value={roi.mode}
             onChange={(e) =>
               onModeChange(e.target.value as "square" | "polygon")
             }
           >
-            <option value="square">Квадрат</option>
-            <option value="polygon">По точкам</option>
+            <option value="square">{t("roi.square")}</option>
+            <option value="polygon">{t("roi.polygon")}</option>
           </select>
         </label>
 
         {!isPolygon && (
           <>
             <label className="roi-size-label">
-              Размер
+              {t("roi.size")}
               <input
                 type="number"
                 min={8}
@@ -53,10 +55,10 @@ export function RoiControls({
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              title={`Сбросить к ${defaultSize} px`}
+              title={t("roi.resetTitle", { size: defaultSize })}
               onClick={onReset}
             >
-              ↺ Сброс
+              {t("roi.reset")}
             </button>
           </>
         )}
@@ -64,9 +66,7 @@ export function RoiControls({
         {isPolygon && (
           <>
             <p className="muted small roi-hint-inline">
-              {polygonClosed
-                ? "Произвольная область выбрана."
-                : "Кликните точки на кадре. Замкните кликом по первой точке."}
+              {polygonClosed ? t("roi.polygonClosed") : t("roi.polygonOpen")}
             </p>
             {polygonClosed && (
               <button
@@ -74,7 +74,7 @@ export function RoiControls({
                 className="btn btn-ghost btn-sm roi-redraw-btn"
                 onClick={onRedraw}
               >
-                Рисовать заново
+                {t("roi.redraw")}
               </button>
             )}
           </>

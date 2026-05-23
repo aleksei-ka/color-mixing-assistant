@@ -1,19 +1,23 @@
 import type { MatchResult } from "../api";
+import { useTranslation } from "../i18n/I18nProvider";
 
 type Props = {
   match: MatchResult | null;
   error: string | null;
 };
 
-function sourceLabel(captured: boolean | undefined, role: string): string {
-  return captured ? `${role} (захват)` : `${role} (live)`;
-}
-
 export function MixSuggestion({ match, error }: Props) {
+  const { t } = useTranslation();
+
+  const sourceLabel = (captured: boolean | undefined, roleKey: string) =>
+    captured
+      ? t("mix.sourceCaptured", { role: t(roleKey) })
+      : t("mix.sourceLive", { role: t(roleKey) });
+
   if (error) {
     return (
       <section className="mix-panel">
-        <h2>Смешивание и сравнение</h2>
+        <h2>{t("mix.title")}</h2>
         <p className="error">{error}</p>
       </section>
     );
@@ -22,8 +26,8 @@ export function MixSuggestion({ match, error }: Props) {
   if (!match) {
     return (
       <section className="mix-panel">
-        <h2>Смешивание и сравнение</h2>
-        <p className="muted">Загрузка…</p>
+        <h2>{t("mix.title")}</h2>
+        <p className="muted">{t("mix.loading")}</p>
       </section>
     );
   }
@@ -34,37 +38,33 @@ export function MixSuggestion({ match, error }: Props) {
 
   return (
     <section className="mix-panel">
-      <h2>Смешивание и сравнение</h2>
+      <h2>{t("mix.title")}</h2>
       <p className="muted small">
-        Цель: {sourceLabel(targetCaptured, "камера 1")} · Палитра:{" "}
-        {sourceLabel(paletteCaptured, "камера 2")}
+        {t("mix.sources", {
+          target: sourceLabel(targetCaptured, "mix.camera1"),
+          palette: sourceLabel(paletteCaptured, "mix.camera2"),
+        })}
       </p>
 
       <p className="delta-e-line">
-        ΔE (палитра ↔ цель): <strong>{deltaE}</strong>
+        {t("mix.deltaE")} <strong>{deltaE}</strong>
       </p>
-      <p className="muted small delta-e-hint">
-        Насколько отличаются цвета для глаза: &lt;2 — почти совпадают, 2–5 —
-        заметно, &gt;10 — сильно разные.
-      </p>
+      <p className="muted small delta-e-hint">{t("mix.deltaEHint")}</p>
 
       {!mix.available && (
-        <p className="muted">{mix.message ?? "Нет базовых цветов"}</p>
+        <p className="muted">{mix.message ?? t("mix.noBases")}</p>
       )}
 
       {mix.available && components.length > 0 && (
         <>
-          <h3 className="mix-subtitle">Какие пигменты добавить к палитре</h3>
-          <p className="muted small mix-intro">
-            Список — до трёх красок из вашего набора, которые сильнее всего
-            сдвигают <strong>текущий цвет палитры</strong> к{" "}
-            <strong>образцу</strong>. Проценты в сумме дают 100% только у этих
-            строк: это <em>важность</em>, а не «столько миллилитров».
-          </p>
+          <h3 className="mix-subtitle">{t("mix.pigmentsTitle")}</h3>
+          <p className="muted small mix-intro">{t("mix.pigmentsIntro")}</p>
           {top && (
             <p className="mix-practical small">
-              Начните с <strong>{top.name}</strong> ({top.percent}%) — добавляйте
-              понемногу, снова снимайте палитру камерой.
+              {t("mix.startWith", {
+                name: top.name,
+                percent: top.percent,
+              })}
             </p>
           )}
           <ul className="mix-list">
@@ -81,7 +81,9 @@ export function MixSuggestion({ match, error }: Props) {
                   <div className="mix-item-head">
                     <span className="mix-rank">{i + 1}.</span>
                     <strong>{c.name}</strong>
-                    <span className="mix-percent">вклад ~{c.percent}%</span>
+                    <span className="mix-percent">
+                      {t("mix.contribution", { percent: c.percent })}
+                    </span>
                   </div>
                   <div
                     className="mix-bar"
@@ -89,9 +91,7 @@ export function MixSuggestion({ match, error }: Props) {
                     style={{ width: `${c.percent}%` }}
                   />
                   <span className="muted small mix-item-hint">
-                    {i === 0
-                      ? "главный пигмент для сдвига к образцу"
-                      : "дополнительно"}
+                    {i === 0 ? t("mix.hintMain") : t("mix.hintExtra")}
                   </span>
                 </div>
               </li>
