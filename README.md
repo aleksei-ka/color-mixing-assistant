@@ -61,13 +61,17 @@ API: http://127.0.0.1:8000/docs
 
 `backend/data/base_colors.json` — дефолт для подсказки смешивания (`GET /api/base-colors`, используется в `match`).
 
-## Тесты
+## Тесты и Quality Gate
 
 ```powershell
-.\scripts\test.ps1
+.\scripts\test.ps1      # только pytest + vitest (QG v1)
+.\scripts\qg.ps1        # v1 + v2 (i18n); v3 — после docs/openapi.json
+.\scripts\qg.ps1 -Stage v3
 ```
 
-Или отдельно: `cd backend` → `pytest` · `cd frontend` → `npm test`.
+На Linux/macOS: `./scripts/qg.sh [v1|v2|v3|all]`.
+
+Или отдельно: `cd backend` → `pytest` · `cd frontend` → `npm test` · `python scripts/check_i18n_keys.py`.
 
 ## Языки UI
 

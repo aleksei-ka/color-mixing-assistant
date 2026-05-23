@@ -140,9 +140,9 @@ flowchart LR
 
 **Реализация:**
 
-- [ ] `scripts/qg.sh` и `scripts/qg.ps1` — единая точка входа
-- [ ] `scripts/check-i18n-keys.*` — только в QG v2
-- [ ] Pre-commit — опционально, те же проверки что QG v1/v2
+- [x] `scripts/qg.sh` и `scripts/qg.ps1` — единая точка входа
+- [x] `scripts/check_i18n_keys.py` — QG v2
+- [x] Pre-commit — опционально (i18n hook в `.pre-commit-config.yaml`)
 - [ ] Docker / CI — stage `test`, вызов `qg` (см. п. 9)
 
 **Критерий:** скрипт падает при падении тестов; после i18n — при пропущенном ключе.

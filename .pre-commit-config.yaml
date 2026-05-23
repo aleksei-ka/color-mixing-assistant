@@ -1,0 +1,10 @@
+# Optional: pip install pre-commit && pre-commit install
+# Full gate: .\scripts\qg.ps1  or  ./scripts/qg.sh
+repos:
+  - repo: local
+    hooks:
+      - id: check-i18n
+        name: i18n key parity (QG v2)
+        entry: python scripts/check_i18n_keys.py
+        language: system
+        pass_filenames: false
