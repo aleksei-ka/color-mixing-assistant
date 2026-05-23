@@ -25,21 +25,44 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const onReadyRef = useRef(onReady);
+  const onErrorRef = useRef(onError);
+  const onVideoMountRef = useRef(onVideoMount);
+
+  onReadyRef.current = onReady;
+  onErrorRef.current = onError;
+  onVideoMountRef.current = onVideoMount;
 
   useImperativeHandle(ref, () => ({
     getVideo: () => videoRef.current,
   }));
 
   useEffect(() => {
-    if (!active || !deviceId) return;
+    if (!active || !deviceId) {
+      return;
+    }
 
     let cancelled = false;
+    let loadedHandler: (() => void) | null = null;
+
+    const stopStream = () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      const video = videoRef.current;
+      if (video) {
+        if (loadedHandler) {
+          video.removeEventListener("loadeddata", loadedHandler);
+        }
+        video.srcObject = null;
+      }
+      onVideoMountRef.current?.(null);
+    };
 
     const start = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            deviceId: { exact: deviceId },
+            deviceId: { ideal: deviceId },
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
@@ -49,22 +72,34 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+
         streamRef.current = stream;
         const video = videoRef.current;
-        if (!video) return;
-        video.srcObject = stream;
-        await video.play();
-        onVideoMount?.(video);
+        if (!video) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
 
-        const reportSize = () => {
+        video.srcObject = stream;
+        onVideoMountRef.current?.(video);
+
+        loadedHandler = () => {
           if (video.videoWidth > 0 && video.videoHeight > 0) {
-            onReady?.(video.videoWidth, video.videoHeight);
+            onReadyRef.current?.(video.videoWidth, video.videoHeight);
           }
         };
-        video.addEventListener("loadeddata", reportSize);
-        reportSize();
+        video.addEventListener("loadeddata", loadedHandler);
+
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err: DOMException) => {
+            if (cancelled || err.name === "AbortError") return;
+            onErrorRef.current?.(err.message || "Не удалось запустить видео");
+          });
+        }
       } catch (e) {
-        onError?.(
+        if (cancelled) return;
+        onErrorRef.current?.(
           e instanceof Error ? e.message : "Не удалось открыть камеру",
         );
       }
@@ -74,15 +109,9 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = null;
-      }
-      onVideoMount?.(null);
+      stopStream();
     };
-  }, [deviceId, active, onReady, onError, onVideoMount]);
+  }, [deviceId, active]);
 
   return (
     <video

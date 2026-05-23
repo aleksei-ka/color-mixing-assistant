@@ -110,17 +110,26 @@ export default function App() {
 
   useEffect(() => {
     if (!devices.length) return;
+
+    const firstId = devices[0]?.deviceId ?? "";
+    const secondId =
+      devices.find((d) => d.deviceId !== firstId)?.deviceId ?? "";
+
     setTargetDeviceId((prev) => {
       if (prev && devices.some((d) => d.deviceId === prev)) return prev;
-      const next = devices[0]?.deviceId ?? "";
-      saveDeviceId(STORAGE_TARGET_DEVICE, next);
-      return next;
+      saveDeviceId(STORAGE_TARGET_DEVICE, firstId);
+      return firstId;
     });
     setPaletteDeviceId((prev) => {
-      if (prev && devices.some((d) => d.deviceId === prev)) return prev;
-      const next = devices[1]?.deviceId ?? devices[0]?.deviceId ?? "";
-      saveDeviceId(STORAGE_PALETTE_DEVICE, next);
-      return next;
+      if (
+        prev &&
+        devices.some((d) => d.deviceId === prev) &&
+        prev !== firstId
+      ) {
+        return prev;
+      }
+      saveDeviceId(STORAGE_PALETTE_DEVICE, secondId);
+      return secondId;
     });
   }, [devices]);
 
@@ -207,14 +216,34 @@ export default function App() {
     }));
   };
 
+  const handleTargetFrameSize = useCallback((w: number, h: number) => {
+    setTargetFrame((prev) =>
+      prev.w === w && prev.h === h ? prev : { w, h },
+    );
+  }, []);
+
+  const handlePaletteFrameSize = useCallback((w: number, h: number) => {
+    setPaletteFrame((prev) =>
+      prev.w === w && prev.h === h ? prev : { w, h },
+    );
+  }, []);
+
   const handleTargetDevice = (deviceId: string) => {
     setTargetDeviceId(deviceId);
     saveDeviceId(STORAGE_TARGET_DEVICE, deviceId);
+    if (deviceId && deviceId === paletteDeviceId) {
+      setPaletteDeviceId("");
+      saveDeviceId(STORAGE_PALETTE_DEVICE, "");
+    }
   };
 
   const handlePaletteDevice = (deviceId: string) => {
     setPaletteDeviceId(deviceId);
     saveDeviceId(STORAGE_PALETTE_DEVICE, deviceId);
+    if (deviceId && deviceId === targetDeviceId) {
+      setTargetDeviceId("");
+      saveDeviceId(STORAGE_TARGET_DEVICE, "");
+    }
   };
 
   const handleTargetHold = useCallback(
@@ -293,7 +322,7 @@ export default function App() {
           defaultRoiSize={defaultRoiSize}
           roi={targetRoi}
           onDeviceIdChange={handleTargetDevice}
-          onFrameSize={(w, h) => setTargetFrame({ w, h })}
+          onFrameSize={handleTargetFrameSize}
           onHoldChange={handleTargetHold}
           onLiveColor={setLiveTarget}
           onRoiModeChange={(m) => handleRoiModeChange("target", m)}
@@ -316,7 +345,7 @@ export default function App() {
           defaultRoiSize={defaultRoiSize}
           roi={paletteRoi}
           onDeviceIdChange={handlePaletteDevice}
-          onFrameSize={(w, h) => setPaletteFrame({ w, h })}
+          onFrameSize={handlePaletteFrameSize}
           onHoldChange={handlePaletteHold}
           onLiveColor={setLivePalette}
           onRoiModeChange={(m) => handleRoiModeChange("palette", m)}

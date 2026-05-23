@@ -91,7 +91,8 @@ export function CameraPanel({
 
   const isHeld = hold !== null;
   const duplicateDevice =
-    deviceId && otherDeviceId && deviceId === otherDeviceId;
+    Boolean(deviceId && otherDeviceId && deviceId === otherDeviceId);
+  const cameraActive = !isHeld && Boolean(deviceId) && !duplicateDevice;
 
   const setFrameRef = useCallback((el: FrameSource | null) => {
     frameRef.current = el;
@@ -111,7 +112,10 @@ export function CameraPanel({
   }, [roi]);
 
   useEffect(() => {
-    if (isHeld) return;
+    if (isHeld || !cameraActive) {
+      onLiveColor(null);
+      return;
+    }
     const tick = async () => {
       const c = await sampleCurrentFrame();
       onLiveColor(c);
@@ -119,7 +123,7 @@ export function CameraPanel({
     tick();
     const id = window.setInterval(tick, 400);
     return () => window.clearInterval(id);
-  }, [isHeld, sampleCurrentFrame, onLiveColor]);
+  }, [isHeld, cameraActive, sampleCurrentFrame, onLiveColor]);
 
   useEffect(() => {
     if (!isHeld) return;
@@ -193,7 +197,8 @@ export function CameraPanel({
       )}
       {duplicateDevice && (
         <p className="camera-warn muted small">
-          Та же камера выбрана для обеих панелей — лучше выбрать разные устройства.
+          Эта камера уже используется в другой панели — выберите другое устройство
+          (или оставьте пустым, если камера одна).
         </p>
       )}
 
@@ -256,16 +261,20 @@ export function CameraPanel({
             alt={`${title} (захват)`}
             className="video"
           />
-        ) : deviceId ? (
+        ) : deviceId && !duplicateDevice ? (
           <BrowserCamera
             ref={cameraRef}
             deviceId={deviceId}
-            active={!isHeld}
+            active={cameraActive}
             alt={title}
             onReady={onFrameSize}
             onError={setLocalCamError}
             onVideoMount={setFrameRef}
           />
+        ) : deviceId && duplicateDevice ? (
+          <div className="video video-placeholder">
+            Камера занята другой панелью
+          </div>
         ) : (
           <div className="video video-placeholder">
             Выберите камеру и разрешите доступ в браузере
