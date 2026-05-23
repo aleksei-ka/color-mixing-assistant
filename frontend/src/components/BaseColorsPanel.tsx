@@ -6,6 +6,7 @@ import type { BaseColor } from "../palette/types";
 import {
   clampChannel,
   MAX_COLOR_NAME_LENGTH,
+  MIN_USER_PALETTE_COLORS,
   normalizeColorName,
 } from "../palette/validate";
 import { ColorHexField } from "./ColorHexField";
@@ -155,6 +156,7 @@ export function BaseColorsPanel({
   };
 
   const removeColor = (index: number) => {
+    if (draftRef.current.length <= MIN_USER_PALETTE_COLORS) return;
     commitNow(draftRef.current.filter((_, i) => i !== index));
   };
 
@@ -401,12 +403,19 @@ export function BaseColorsPanel({
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm bases-pick-btn"
-                    disabled={isServerSelection}
+                    disabled={
+                      isServerSelection ||
+                      draftColors.length <= MIN_USER_PALETTE_COLORS
+                    }
                     onClick={() => removeColor(i)}
                     title={
                       isServerSelection
                         ? t("bases.removeColorDisabled")
-                        : t("bases.removeColor")
+                        : draftColors.length <= MIN_USER_PALETTE_COLORS
+                          ? t("bases.removeColorMin", {
+                              min: MIN_USER_PALETTE_COLORS,
+                            })
+                          : t("bases.removeColor")
                     }
                   >
                     ×

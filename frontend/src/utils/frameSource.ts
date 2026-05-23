@@ -46,3 +46,25 @@ export async function captureFrameBlob(
     height: h,
   };
 }
+
+export async function loadImageFile(
+  file: File,
+): Promise<{ blobUrl: string; image: HTMLImageElement; width: number; height: number }> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("imageInvalid");
+  }
+  const blobUrl = URL.createObjectURL(file);
+  const image = new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("imageLoadFailed"));
+    image.src = blobUrl;
+  });
+  const width = image.naturalWidth;
+  const height = image.naturalHeight;
+  if (!width || !height) {
+    URL.revokeObjectURL(blobUrl);
+    throw new Error("imageLoadFailed");
+  }
+  return { blobUrl, image, width, height };
+}

@@ -38,6 +38,18 @@ body {
   font-size: 1.75rem;
 }
 
+.topbar .app-intro {
+  max-width: 52rem;
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+}
+
+.topbar .app-limits {
+  max-width: 52rem;
+  margin: 0.35rem 0 0;
+  line-height: 1.45;
+}
+
 .topbar-meta {
   display: flex;
   flex-direction: column;
@@ -282,8 +294,22 @@ body {
   margin: 0.5rem 0 0.25rem;
 }
 
+.delta-e-value {
+  display: inline-block;
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .delta-e-hint {
   margin: 0 0 0.75rem;
+}
+
+.mix-body {
+  margin-top: 0.25rem;
+}
+
+.mix-unavailable {
+  min-height: 12rem;
 }
 
 .mix-subtitle {
@@ -299,11 +325,32 @@ body {
 
 .mix-practical {
   margin: 0 0 0.75rem;
+  min-height: 2.75rem;
   padding: 0.5rem 0.65rem;
   background: rgba(94, 184, 255, 0.08);
   border-radius: 6px;
   border-left: 3px solid var(--accent);
   color: #c8d0dc;
+  line-height: 1.45;
+}
+
+.mix-list-fixed {
+  min-height: calc(3 * 4.75rem + 2 * 0.75rem);
+}
+
+.mix-list-item-empty .mix-swatch {
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.35;
+}
+
+.mix-item-placeholder {
+  color: #6b7280;
+}
+
+.mix-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .mix-list {
@@ -319,6 +366,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
+  min-height: 4.75rem;
 }
 
 .mix-item-body {
@@ -357,6 +405,7 @@ body {
 
 .mix-item-hint {
   display: block;
+  min-height: 1.25rem;
 }
 
 .mix-swatch {
@@ -697,6 +746,22 @@ code {
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+}
+
+.camera-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.camera-toolbar-icon-btn {
+  min-width: 2.125rem;
+  padding: 0.4rem;
+}
+
+.camera-upload-icon {
+  display: block;
 }
 
 .bases-panel {

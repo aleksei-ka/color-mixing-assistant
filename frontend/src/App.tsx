@@ -288,12 +288,13 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>{t("app.title")}</h1>
-          <p className="muted">{t("app.subtitle")}</p>
+          <p className="muted app-intro">{t("app.subtitle")}</p>
+          <p className="muted small app-limits">{t("app.subtitleLimits")}</p>
         </div>
         <div className="topbar-meta">
           <LanguageSwitcher />
           <span className={`badge ${online ? "badge-ok" : "badge-off"}`}>
-            API {online ? t("app.apiOnline") : t("app.apiOffline")}
+            {online ? t("app.apiOnline") : t("app.apiOffline")}
           </span>
           <button
             type="button"

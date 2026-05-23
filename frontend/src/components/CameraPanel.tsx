@@ -16,6 +16,7 @@ import type { VideoInputOption } from "../hooks/useMediaDevices";
 import {
   captureFrameBlob,
   isFrameReady,
+  loadImageFile,
   type FrameSource,
 } from "../utils/frameSource";
 import { sampleRgbFromFrame } from "../utils/sampleImageColor";
@@ -88,6 +89,7 @@ export function CameraPanel({
   const cameraRef = useRef<BrowserCameraHandle>(null);
   const frameRef = useRef<FrameSource | null>(null);
   const holdImgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [polygonDraft, setPolygonDraft] = useState<number[][]>([]);
   const [capturing, setCapturing] = useState(false);
   const [localCamError, setLocalCamError] = useState<string | null>(null);
@@ -144,19 +146,18 @@ export function CameraPanel({
     const video = cameraRef.current?.getVideo();
     if (!video || !isFrameReady(video)) return;
     setCapturing(true);
+    setLocalCamError(null);
     try {
       const { blobUrl } = await captureFrameBlob(video);
-      const rgb = sampleRgbFromFrame(video, roi);
-      const analyzed = await analyzeRgb(rgb);
-      onHoldChange({
-        color: analyzed,
-        imageUrl: blobUrl,
-        capturedAt: new Date().toISOString(),
-      });
-      onLiveColor(null);
+      await applyHoldFromFrame(video, blobUrl);
     } catch (e) {
+      const code = e instanceof Error ? e.message : "";
       setLocalCamError(
-        e instanceof Error ? e.message : t("errors.captureFailed"),
+        code === "frameNotReady"
+          ? t("errors.frameNotReady")
+          : e instanceof Error
+            ? e.message
+            : t("errors.captureFailed"),
       );
     } finally {
       setCapturing(false);
@@ -165,6 +166,53 @@ export function CameraPanel({
 
   const handleResumeLive = () => {
     onHoldChange(null);
+  };
+
+  const applyHoldFromFrame = async (
+    source: FrameSource,
+    imageUrl: string,
+  ) => {
+    if (!isFrameReady(source) || !roiCanSample(roi)) {
+      throw new Error("frameNotReady");
+    }
+    const rgb = sampleRgbFromFrame(source, roi);
+    const analyzed = await analyzeRgb(rgb);
+    onHoldChange({
+      color: analyzed,
+      imageUrl,
+      capturedAt: new Date().toISOString(),
+    });
+    onLiveColor(null);
+  };
+
+  const handleImageUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setCapturing(true);
+    setLocalCamError(null);
+    let blobUrl: string | null = null;
+    try {
+      const loaded = await loadImageFile(file);
+      blobUrl = loaded.blobUrl;
+      onFrameSize(loaded.width, loaded.height);
+      await applyHoldFromFrame(loaded.image, loaded.blobUrl);
+      blobUrl = null;
+    } catch (e) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      const code = e instanceof Error ? e.message : "";
+      if (code === "imageInvalid") {
+        setLocalCamError(t("errors.imageInvalid"));
+      } else if (code === "imageLoadFailed") {
+        setLocalCamError(t("errors.imageLoadFailed"));
+      } else if (code === "frameNotReady") {
+        setLocalCamError(t("errors.frameNotReady"));
+      } else {
+        setLocalCamError(
+          e instanceof Error ? e.message : t("errors.captureFailed"),
+        );
+      }
+    } finally {
+      setCapturing(false);
+    }
   };
 
   const timeLabel =
@@ -216,24 +264,54 @@ export function CameraPanel({
             ))}
           </select>
         </label>
-        {!isHeld ? (
+        <div className="camera-toolbar-actions">
+          {!isHeld ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm camera-toolbar-btn"
+              disabled={capturing || !deviceId}
+              onClick={handleCapture}
+            >
+              {capturing ? t("camera.capturing") : t("camera.capture")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm camera-toolbar-btn"
+              onClick={handleResumeLive}
+            >
+              {t("camera.resumeLive")}
+            </button>
+          )}
           <button
             type="button"
-            className="btn btn-primary btn-sm camera-toolbar-btn"
-            disabled={capturing || !deviceId}
-            onClick={handleCapture}
+            className="btn btn-secondary btn-sm camera-toolbar-icon-btn"
+            disabled={capturing}
+            title={t("camera.uploadImage")}
+            aria-label={t("camera.uploadImage")}
+            onClick={() => fileInputRef.current?.click()}
           >
-            {capturing ? t("camera.capturing") : t("camera.capture")}
+            <svg
+              className="camera-upload-icon"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              aria-hidden
+            >
+              <path
+                fill="currentColor"
+                d="M19 13h-4v4h-2v-4H9v-2h4V7h2v4h4v2zm-6-8H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9l-6-6zm0 2.5L17.5 11H13V7.5z"
+              />
+            </svg>
           </button>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm camera-toolbar-btn"
-            onClick={handleResumeLive}
-          >
-            {t("camera.resumeLive")}
-          </button>
-        )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => void handleImageUpload(e.target.files?.[0])}
+          />
+        </div>
       </div>
 
       <RoiControls

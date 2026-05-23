@@ -1,7 +1,8 @@
 {
   "app": {
-    "title": "Color Matcher",
-    "subtitle": "Browser cameras · comparison and mix via API",
+    "title": "Color Mixing Assistant",
+    "subtitle": "This app helps you mix paints toward a target color. On the first camera, pick the color you want to match — on a miniature, character photo, or any other reference. On the second, sample the color currently on your palette or a test swatch on scrap material. The app suggests which base paints to add to move the palette color closer to the target.",
+    "subtitleLimits": "It does not compensate for lighting, control camera focus, or know how much paint is on the palette or how strong your pigments are — it only points you in the right direction for adjusting the hue.",
     "apiOnline": "API online",
     "apiOffline": "API offline",
     "refreshCameras": "Refresh camera list",
@@ -23,7 +24,8 @@
     "live": "live",
     "held": "capture",
     "captureAt": "capture {{time}}",
-    "placeholder": "Select a camera and allow access in the browser",
+    "uploadImage": "Upload image",
+    "placeholder": "Select a camera, upload an image, or allow access in the browser",
     "heldHint": "Snapshot — compare the marker with the color on screen",
     "roiHintLive": "Color sampling region on the frame",
     "roiHintPolygon": "Mark points on the frame",
@@ -83,6 +85,7 @@
     "addColor": "Add color",
     "removeColor": "Remove",
     "removeColorDisabled": "Cannot remove colors from a server preset",
+    "removeColorMin": "At least {{min}} colors must remain in the set",
     "newColorName": "New color",
     "importExport": "Import / export",
     "export": "Export user presets",
@@ -113,6 +116,7 @@
     "contribution": "contribution ~{{percent}}%",
     "hintMain": "main pigment toward the sample",
     "hintExtra": "additional",
+    "closeColors": "Colors are already close — no meaningful additions from the set.",
     "legend": "Percents are relative pigment contribution toward the target, not exact paint volumes. Sum is 100% for listed rows."
   },
   "errors": {
@@ -124,6 +128,8 @@
     "frameNotReady": "Frame not ready",
     "canvasUnavailable": "Canvas unavailable",
     "captureFailed": "Capture failed",
+    "imageInvalid": "Choose an image file (JPEG, PNG, etc.)",
+    "imageLoadFailed": "Failed to load image",
     "videoNotReady": "Video not ready yet",
     "loadSnapshotFailed": "Failed to load snapshot"
   }

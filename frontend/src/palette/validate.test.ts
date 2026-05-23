@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { labelExists, createSet } from "./storage";
 import {
   MAX_COLOR_NAME_LENGTH,
+  MIN_USER_PALETTE_COLORS,
   normalizeColorName,
   normalizeHexInput,
   parseImportPayload,
@@ -33,6 +34,12 @@ describe("normalizeColorName", () => {
   it("truncates to max length", () => {
     const long = "a".repeat(200);
     expect(normalizeColorName(long).length).toBe(MAX_COLOR_NAME_LENGTH);
+  });
+});
+
+describe("MIN_USER_PALETTE_COLORS", () => {
+  it("requires at least three colors in a user set", () => {
+    expect(MIN_USER_PALETTE_COLORS).toBe(3);
   });
 });
 

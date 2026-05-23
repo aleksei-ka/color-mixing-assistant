@@ -2,6 +2,7 @@ import { parseHex } from "./hex";
 import type { BaseColor, PaletteExportFile, PaletteFile } from "./types";
 
 export const MAX_COLOR_NAME_LENGTH = 150;
+export const MIN_USER_PALETTE_COLORS = 3;
 
 function isRgbTuple(v: unknown): v is [number, number, number] {
   return (
