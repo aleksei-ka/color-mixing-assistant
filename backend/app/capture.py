@@ -3,21 +3,17 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from enum import Enum
-
 import cv2
 import numpy as np
 
 from app.config import settings
 from app.color import EmaSmoother, analyze_rgb, reading_to_dict
 from app.roi import draw_roi_overlay, sample_median_rgb
+from app.roi_state import roi_store
+
+from app.roles import CameraRole
 
 logger = logging.getLogger(__name__)
-
-
-class CameraRole(str, Enum):
-    TARGET = "target"
-    PALETTE = "palette"
 
 
 class CameraStream:
@@ -144,12 +140,13 @@ class CameraStream:
                     time.sleep(0.05)
                     continue
 
-            rgb = sample_median_rgb(frame, settings.roi_size)
+            roi = roi_store.get(self.role)
+            rgb = sample_median_rgb(frame, roi)
             smooth = self._smoother.update(rgb)
             reading = analyze_rgb(smooth)
             color_payload = reading_to_dict(reading)
 
-            display = draw_roi_overlay(frame, settings.roi_size)
+            display = draw_roi_overlay(frame, roi)
             with self._lock:
                 self._frame = display
                 self._last_color = color_payload

@@ -9,10 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.capture import CameraManager, CameraRole, probe_cameras
+from app.capture import CameraManager, probe_cameras
 from app.color import delta_e_2000
 from app.config import settings
 from app.mixer import suggest_mix
+from app.roles import CameraRole
+from app.roi_state import roi_store
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -135,6 +137,62 @@ def status() -> dict:
             stream_info(CameraRole.PALETTE),
         ]
     }
+
+
+@app.get("/api/roi/{role}")
+def get_roi(role: str) -> dict:
+    return roi_store.get(_role(role)).to_api()
+
+
+class RoiUpdateBody(BaseModel):
+    mode: str | None = None
+    size: int | None = Field(default=None, ge=8, le=400)
+    center_x: int | None = Field(default=None, alias="centerX")
+    center_y: int | None = Field(default=None, alias="centerY")
+    reset_center: bool | None = Field(default=None, alias="resetCenter")
+    points: list[list[int]] | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+@app.put("/api/roi/{role}")
+def update_roi(role: str, body: RoiUpdateBody) -> dict:
+    camera_role = _role(role)
+    if body.mode is not None and body.mode not in ("square", "polygon"):
+        raise HTTPException(400, "mode must be square or polygon")
+    state = roi_store.update(
+        camera_role,
+        mode=body.mode,
+        size=body.size,
+        center_x=body.center_x,
+        center_y=body.center_y,
+        clear_center=bool(body.reset_center),
+        points=body.points,
+    )
+    return state.to_api()
+
+
+@app.post("/api/roi/{role}/reset")
+def reset_roi(role: str) -> dict:
+    return roi_store.reset_square(_role(role)).to_api()
+
+
+@app.post("/api/roi/{role}/redraw")
+def redraw_polygon(role: str) -> dict:
+    return roi_store.redraw_polygon(_role(role)).to_api()
+
+
+class RgbBody(BaseModel):
+    r: int = Field(ge=0, le=255)
+    g: int = Field(ge=0, le=255)
+    b: int = Field(ge=0, le=255)
+
+
+@app.post("/api/analyze-rgb")
+def analyze_rgb_endpoint(body: RgbBody) -> dict:
+    from app.color import analyze_rgb, reading_to_dict
+
+    return reading_to_dict(analyze_rgb((body.r, body.g, body.b)))
 
 
 @app.get("/api/color/{role}")

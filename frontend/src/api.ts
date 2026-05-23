@@ -50,7 +50,19 @@ export type AppConfig = {
   cameraTargetIndex: number;
   cameraPaletteIndex: number;
   roiSize: number;
+  frameWidth?: number;
+  frameHeight?: number;
   cameraProbeMax?: number;
+};
+
+export type RoiConfig = {
+  mode: "square" | "polygon";
+  size: number;
+  centerX: number | null;
+  centerY: number | null;
+  points: number[][];
+  label: string;
+  polygonClosed: boolean;
 };
 
 /** Захваченный кадр и цвет одной камеры */
@@ -64,6 +76,18 @@ export type CameraRole = "target" | "palette";
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path);
+  if (!res.ok) {
+    throw new Error(`${path} → ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function putJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   if (!res.ok) {
     throw new Error(`${path} → ${res.status}`);
   }
@@ -125,8 +149,38 @@ export function fetchColor(
   return getJson(`/api/color/${role}`);
 }
 
+export function analyzeRgb(rgb: Rgb): Promise<ColorPayload> {
+  return postJson("/api/analyze-rgb", rgb);
+}
+
 export function fetchConfig(): Promise<AppConfig> {
   return getJson("/api/config");
+}
+
+export function fetchRoi(role: CameraRole): Promise<RoiConfig> {
+  return getJson(`/api/roi/${role}`);
+}
+
+export function updateRoi(
+  role: CameraRole,
+  patch: {
+    mode?: "square" | "polygon";
+    size?: number;
+    centerX?: number;
+    centerY?: number;
+    resetCenter?: boolean;
+    points?: number[][];
+  },
+): Promise<RoiConfig> {
+  return putJson(`/api/roi/${role}`, patch);
+}
+
+export function resetRoi(role: CameraRole): Promise<RoiConfig> {
+  return postJson(`/api/roi/${role}/reset`, {});
+}
+
+export function redrawPolygonRoi(role: CameraRole): Promise<RoiConfig> {
+  return postJson(`/api/roi/${role}/redraw`, {});
 }
 
 export function fetchCameras(): Promise<{ devices: CameraDevice[] }> {

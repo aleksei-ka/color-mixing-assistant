@@ -7,6 +7,7 @@ type Props = {
   streamKey: number;
   paused: boolean;
   alt: string;
+  onSrcChange?: (src: string) => void;
 };
 
 /** Polls JPEG snapshots — works reliably through the Vite dev proxy (unlike MJPEG). */
@@ -16,6 +17,7 @@ export function LivePreview({
   streamKey,
   paused,
   alt,
+  onSrcChange,
 }: Props) {
   const [src, setSrc] = useState<string>("");
   const [error, setError] = useState(false);
@@ -27,9 +29,7 @@ export function LivePreview({
 
     const pull = async () => {
       try {
-        const res = await fetch(
-          `${snapshotUrl(role)}?t=${Date.now()}`,
-        );
+        const res = await fetch(`${snapshotUrl(role)}?t=${Date.now()}`);
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();
         if (cancelled) return;
@@ -50,6 +50,10 @@ export function LivePreview({
       window.clearInterval(id);
     };
   }, [role, deviceIndex, streamKey, paused]);
+
+  useEffect(() => {
+    if (src) onSrcChange?.(src);
+  }, [src, onSrcChange]);
 
   useEffect(
     () => () => {

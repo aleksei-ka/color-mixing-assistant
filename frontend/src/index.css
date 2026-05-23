@@ -45,6 +45,14 @@ body {
   gap: 0.35rem;
 }
 
+.topbar-cam-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .grid {
   display: grid;
   gap: 1rem;
@@ -339,25 +347,6 @@ code {
   border-top: 1px solid var(--border);
 }
 
-.capture-bar {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.capture-bar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.capture-bar-hint {
-  margin: 0.75rem 0 0;
-}
-
 .btn {
   font: inherit;
   cursor: pointer;
@@ -391,6 +380,151 @@ code {
 .badge-held {
   background: rgba(94, 184, 255, 0.2);
   color: var(--accent);
+}
+
+.badge-live {
+  background: rgba(61, 214, 140, 0.18);
+  color: var(--ok);
+}
+
+.roi-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  background: #0d0f14;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.roi-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.roi-mode-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #9aa3b2;
+  flex-shrink: 0;
+}
+
+.roi-mode-title {
+  white-space: nowrap;
+}
+
+.roi-hint-inline {
+  margin: 0;
+  flex: 1;
+  min-width: 10rem;
+  line-height: 1.35;
+}
+
+.roi-redraw-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.roi-size-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #9aa3b2;
+}
+
+.roi-size-label input {
+  width: 4.5rem;
+  font: inherit;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #1c1f28;
+  color: #e8eaed;
+}
+
+.roi-mode-label select {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #1c1f28;
+  color: #e8eaed;
+  min-width: 8rem;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.roi-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  z-index: 2;
+}
+
+.roi-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.roi-square {
+  fill: rgba(0, 255, 255, 0.12);
+  stroke: #0ff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  cursor: grab;
+}
+
+.roi-overlay-grabbing .roi-square {
+  cursor: grabbing;
+}
+
+.roi-handle {
+  fill: #0ff;
+  stroke: #003;
+  stroke-width: 1;
+  pointer-events: all;
+  cursor: nwse-resize;
+}
+
+.roi-poly-open {
+  fill: none;
+  stroke: #0ff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.roi-poly-fill {
+  fill: rgba(0, 255, 255, 0.15);
+  stroke: #0ff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.roi-point {
+  fill: #0ff;
+  stroke: #012;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.roi-point-first {
+  fill: #f0b429;
+  stroke: #012;
+  stroke-width: 1;
+  pointer-events: none;
 }
 
 .badge-switching {
@@ -448,12 +582,18 @@ code {
 
 .camera-select-label {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.85rem;
   color: #9aa3b2;
   flex: 1;
-  min-width: 10rem;
+  min-width: 12rem;
+}
+
+.camera-select-title {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .camera-select-label select {
@@ -463,7 +603,8 @@ code {
   border: 1px solid var(--border);
   background: #0d0f14;
   color: #e8eaed;
-  width: 100%;
+  flex: 1;
+  min-width: 8rem;
 }
 
 .camera-capture-btn {

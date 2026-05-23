@@ -1,6 +1,8 @@
-import { useMemo } from "react";
-import type { CameraDevice, ColorPayload } from "../api";
+import { useMemo, useState } from "react";
+import type { CameraDevice, ColorPayload, RoiConfig } from "../api";
 import { LivePreview } from "./LivePreview";
+import { RoiControls } from "./RoiControls";
+import { RoiOverlay } from "./RoiOverlay";
 
 type Props = {
   title: string;
@@ -13,12 +15,22 @@ type Props = {
   mock?: boolean;
   deviceIndex: number;
   devices: CameraDevice[];
+  frameWidth: number;
+  frameHeight: number;
+  defaultRoiSize: number;
+  roi: RoiConfig;
   onDeviceChange: (index: number) => void;
   switching?: boolean;
   capturing?: boolean;
   capturedAt?: string | null;
   onCapture: () => void;
   onResumeLive: () => void;
+  onRoiModeChange: (mode: "square" | "polygon") => void;
+  onRoiSizeChange: (size: number) => void;
+  onRoiMove: (centerX: number, centerY: number) => void;
+  onRoiReset: () => void;
+  onRoiRedraw: () => void;
+  onPolygonComplete: (points: number[][]) => void;
 };
 
 export function CameraPanel({
@@ -32,13 +44,26 @@ export function CameraPanel({
   mock,
   deviceIndex,
   devices,
+  frameWidth,
+  frameHeight,
+  defaultRoiSize,
+  roi,
   onDeviceChange,
   switching,
   capturing,
   capturedAt,
   onCapture,
   onResumeLive,
+  onRoiModeChange,
+  onRoiSizeChange,
+  onRoiMove,
+  onRoiReset,
+  onRoiRedraw,
+  onPolygonComplete,
 }: Props) {
+  const [liveSrc, setLiveSrc] = useState("");
+  const [polygonDraft, setPolygonDraft] = useState<number[][]>([]);
+
   const options = useMemo(() => {
     const byIndex = new Map(devices.map((d) => [d.index, d]));
     if (!byIndex.has(deviceIndex)) {
@@ -60,6 +85,9 @@ export function CameraPanel({
       second: "2-digit",
     });
 
+  const imageSrc = isHeld && holdImageUrl ? holdImageUrl : liveSrc;
+  const showOverlay = Boolean(imageSrc);
+
   return (
     <section className={`camera-panel ${isHeld ? "camera-panel-held" : ""}`}>
       <header>
@@ -71,14 +99,18 @@ export function CameraPanel({
           {switching && (
             <span className="badge badge-switching">переключение…</span>
           )}
-          {isHeld && <span className="badge badge-held">захват</span>}
+          {!isHeld ? (
+            <span className="badge badge-live">live</span>
+          ) : (
+            <span className="badge badge-held">захват</span>
+          )}
           {mock && <span className="badge badge-mock">mock</span>}
         </div>
       </header>
 
       <div className="camera-toolbar">
         <label className="camera-select-label">
-          Устройство
+          <span className="camera-select-title">Устройство</span>
           <select
             value={deviceIndex}
             disabled={isHeld}
@@ -113,6 +145,18 @@ export function CameraPanel({
         )}
       </div>
 
+      <RoiControls
+        roi={roi}
+        defaultSize={defaultRoiSize}
+        onModeChange={onRoiModeChange}
+        onSizeChange={onRoiSizeChange}
+        onReset={onRoiReset}
+        onRedraw={() => {
+          setPolygonDraft([]);
+          onRoiRedraw();
+        }}
+      />
+
       <div className="video-wrap">
         {isHeld && holdImageUrl ? (
           <img src={holdImageUrl} alt={`${title} (захват)`} className="video" />
@@ -123,27 +167,36 @@ export function CameraPanel({
             streamKey={streamKey}
             paused={isHeld}
             alt={title}
+            onSrcChange={setLiveSrc}
+          />
+        )}
+        {showOverlay && (
+          <RoiOverlay
+            roi={roi}
+            frameWidth={frameWidth}
+            frameHeight={frameHeight}
+            polygonDraft={polygonDraft}
+            onPolygonDraftChange={setPolygonDraft}
+            onSquareMove={onRoiMove}
+            onSquareResize={onRoiSizeChange}
+            onPolygonComplete={onPolygonComplete}
           />
         )}
         <p className="roi-hint">
           {isHeld
             ? "Снимок — сравните фигурку с цветом на экране"
-            : "Подведите нужный цвет в центральный квадрат"}
+            : roi.mode === "polygon" && !roi.polygonClosed
+              ? "Отметьте точки на кадре"
+              : "Область отбора цвета на кадре"}
         </p>
       </div>
 
       {color && (
-        <div
-          className="swatch"
-          style={{ backgroundColor: color.hex }}
-        >
+        <div className="swatch" style={{ backgroundColor: color.hex }}>
           <span className="swatch-caption">
             <code className="swatch-hex">{color.hex}</code>
             {isHeld && timeLabel && (
-              <span className="swatch-capture">
-                {" "}
-                · захват {timeLabel}
-              </span>
+              <span className="swatch-capture"> · захват {timeLabel}</span>
             )}
           </span>
         </div>
