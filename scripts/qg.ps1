@@ -67,14 +67,7 @@ if ($runV3) {
     } else {
         Run-Step "OpenAPI spec up to date" {
             Push-Location $root
-            $tmpJson = Join-Path $env:TEMP "color-matcher-openapi-check.json"
-            & $python scripts\export_openapi.py $tmpJson
-            $diff = Compare-Object (Get-Content $openapi) (Get-Content $tmpJson)
-            Remove-Item $tmpJson -ErrorAction SilentlyContinue
-            if ($diff) {
-                Write-Host "docs/openapi.json is out of date. Run: python scripts/export_openapi.py" -ForegroundColor Red
-                throw "openapi drift"
-            }
+            & $python scripts\check_openapi_drift.py
             Pop-Location
         }
     }

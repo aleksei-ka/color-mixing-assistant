@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.color import analyze_rgb, delta_e_2000, reading_to_dict
 from app.config import settings
@@ -60,10 +62,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -281,3 +280,18 @@ def get_match(
             "Provide targetR/G/B and paletteR/G/B (colors are sampled in the browser)",
         )
     return _build_match(target_rgb, palette_rgb, bases=None)
+
+
+_static_root: Path | None = None
+if settings.static_dir:
+    candidate = Path(settings.static_dir).resolve()
+    if candidate.is_dir():
+        _static_root = candidate
+        app.mount(
+            "/",
+            StaticFiles(directory=_static_root, html=True),
+            name="frontend",
+        )
+        logger.info("Serving UI from %s", _static_root)
+    else:
+        logger.warning("COLOR_MATCHER_STATIC_DIR not found: %s", candidate)

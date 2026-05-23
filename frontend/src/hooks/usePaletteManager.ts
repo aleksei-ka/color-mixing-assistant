@@ -26,7 +26,6 @@ import {
 import type {
   BaseColor,
   PalettePresetSummary,
-  PaletteSet,
   PaletteStoreV1,
 } from "../palette/types";
 import {

@@ -49,16 +49,7 @@ run_v3() {
     echo "SKIP QG v3: docs/openapi.json or export script missing"
     return 0
   fi
-  run_step "OpenAPI spec up to date" bash -c "
-    tmp=\$(mktemp)
-    '$PYTHON' '$export' \"\$tmp\"
-    diff -q '$openapi' \"\$tmp\" || {
-      echo 'docs/openapi.json is out of date. Run: python scripts/export_openapi.py' >&2
-      rm -f \"\$tmp\"
-      exit 1
-    }
-    rm -f \"\$tmp\"
-  "
+  run_step "OpenAPI spec up to date" "$PYTHON" "$ROOT/scripts/check_openapi_drift.py"
 }
 
 case "$STAGE" in
