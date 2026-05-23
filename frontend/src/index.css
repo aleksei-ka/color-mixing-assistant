@@ -104,17 +104,30 @@ body {
 
 .video-wrap {
   position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  max-height: min(52vh, 420px);
   background: #000;
   border-radius: 8px;
   overflow: hidden;
 }
 
-.video {
+.video-wrap .video,
+.video-wrap .video-placeholder {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
-  height: auto;
-  min-height: 200px;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
   object-fit: contain;
+}
+
+.video-wrap .roi-overlay {
+  position: absolute;
+  inset: 0;
 }
 
 .camera-error,
@@ -554,11 +567,11 @@ code {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
   color: #9aa3b2;
   font-size: 0.9rem;
   padding: 1rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .camera-panel-held {

@@ -5,6 +5,10 @@ import {
   useRef,
   type Ref,
 } from "react";
+import {
+  acquireCameraStream,
+  releaseCameraStream,
+} from "../hooks/cameraStreamPool";
 
 type Props = {
   deviceId: string;
@@ -24,7 +28,6 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
   ref: Ref<BrowserCameraHandle>,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
   const onVideoMountRef = useRef(onVideoMount);
@@ -39,20 +42,21 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 
   useEffect(() => {
     if (!active || !deviceId) {
+      onVideoMountRef.current?.(null);
       return;
     }
 
     let cancelled = false;
     let loadedHandler: (() => void) | null = null;
+    let boundDeviceId = "";
 
-    const stopStream = () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+    const detachVideo = () => {
       const video = videoRef.current;
+      if (video && loadedHandler) {
+        video.removeEventListener("loadeddata", loadedHandler);
+        loadedHandler = null;
+      }
       if (video) {
-        if (loadedHandler) {
-          video.removeEventListener("loadeddata", loadedHandler);
-        }
         video.srcObject = null;
       }
       onVideoMountRef.current?.(null);
@@ -60,23 +64,16 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 
     const start = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            deviceId: { ideal: deviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
+        const stream = await acquireCameraStream(deviceId);
         if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
+          releaseCameraStream(deviceId);
           return;
         }
+        boundDeviceId = deviceId;
 
-        streamRef.current = stream;
         const video = videoRef.current;
         if (!video) {
-          stream.getTracks().forEach((t) => t.stop());
+          releaseCameraStream(deviceId);
           return;
         }
 
@@ -109,7 +106,10 @@ export const BrowserCamera = forwardRef(function BrowserCamera(
 
     return () => {
       cancelled = true;
-      stopStream();
+      detachVideo();
+      if (boundDeviceId) {
+        releaseCameraStream(boundDeviceId);
+      }
     };
   }, [deviceId, active]);
 

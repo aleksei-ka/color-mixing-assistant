@@ -31,6 +31,7 @@ type Props = {
   subtitle: string;
   deviceId: string;
   devices: VideoInputOption[];
+  panelId: "target" | "palette";
   otherDeviceId?: string;
   hold: CameraHold | null;
   color: ColorPayload | null;
@@ -61,6 +62,7 @@ function roiCanSample(roi: RoiConfig): boolean {
 export function CameraPanel({
   title,
   subtitle,
+  panelId,
   deviceId,
   devices,
   otherDeviceId,
@@ -90,9 +92,9 @@ export function CameraPanel({
   const [localCamError, setLocalCamError] = useState<string | null>(null);
 
   const isHeld = hold !== null;
-  const duplicateDevice =
+  const sameAsOther =
     Boolean(deviceId && otherDeviceId && deviceId === otherDeviceId);
-  const cameraActive = !isHeld && Boolean(deviceId) && !duplicateDevice;
+  const cameraActive = !isHeld && Boolean(deviceId);
 
   const setFrameRef = useCallback((el: FrameSource | null) => {
     frameRef.current = el;
@@ -195,10 +197,10 @@ export function CameraPanel({
           {cameraError || localCamError}
         </p>
       )}
-      {duplicateDevice && (
+      {sameAsOther && !isHeld && (
         <p className="camera-warn muted small">
-          Эта камера уже используется в другой панели — выберите другое устройство
-          (или оставьте пустым, если камера одна).
+          Та же камера, что и в другой панели — общий поток (можно сравнивать
+          захват и live).
         </p>
       )}
 
@@ -206,13 +208,15 @@ export function CameraPanel({
         <label className="camera-select-label">
           <span className="camera-select-title">Устройство</span>
           <select
+            id={`camera-select-${panelId}`}
+            name={`camera-select-${panelId}`}
             value={deviceId}
             disabled={isHeld}
             onChange={(e) => onDeviceIdChange(e.target.value)}
           >
-            {!deviceId && <option value="">— выберите камеру —</option>}
+            <option value="">— выберите камеру —</option>
             {devices.map((d) => (
-              <option key={d.deviceId} value={d.deviceId}>
+              <option key={`${panelId}-${d.deviceId}`} value={d.deviceId}>
                 {d.label}
               </option>
             ))}
@@ -261,7 +265,7 @@ export function CameraPanel({
             alt={`${title} (захват)`}
             className="video"
           />
-        ) : deviceId && !duplicateDevice ? (
+        ) : deviceId ? (
           <BrowserCamera
             ref={cameraRef}
             deviceId={deviceId}
@@ -271,10 +275,6 @@ export function CameraPanel({
             onError={setLocalCamError}
             onVideoMount={setFrameRef}
           />
-        ) : deviceId && duplicateDevice ? (
-          <div className="video video-placeholder">
-            Камера занята другой панелью
-          </div>
         ) : (
           <div className="video video-placeholder">
             Выберите камеру и разрешите доступ в браузере

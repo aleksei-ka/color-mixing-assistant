@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   fetchConfig,
   fetchHealth,
@@ -70,6 +70,7 @@ export default function App() {
 
   const { devices, loading: devicesLoading, error: devicesError, refresh } =
     useMediaDevices();
+  const devicesAssigned = useRef(false);
 
   const defaultRoiSize = config?.roiSize ?? 48;
   const targetRoi = roiTarget ?? defaultRoi(defaultRoiSize);
@@ -109,27 +110,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!devices.length) return;
+    if (!devices.length || devicesAssigned.current) return;
+    devicesAssigned.current = true;
 
     const firstId = devices[0]?.deviceId ?? "";
     const secondId =
       devices.find((d) => d.deviceId !== firstId)?.deviceId ?? "";
 
     setTargetDeviceId((prev) => {
-      if (prev && devices.some((d) => d.deviceId === prev)) return prev;
-      saveDeviceId(STORAGE_TARGET_DEVICE, firstId);
-      return firstId;
+      const next =
+        prev && devices.some((d) => d.deviceId === prev) ? prev : firstId;
+      saveDeviceId(STORAGE_TARGET_DEVICE, next);
+      return next;
     });
     setPaletteDeviceId((prev) => {
-      if (
-        prev &&
-        devices.some((d) => d.deviceId === prev) &&
-        prev !== firstId
-      ) {
-        return prev;
-      }
-      saveDeviceId(STORAGE_PALETTE_DEVICE, secondId);
-      return secondId;
+      const next =
+        prev && devices.some((d) => d.deviceId === prev) ? prev : secondId;
+      saveDeviceId(STORAGE_PALETTE_DEVICE, next);
+      return next;
     });
   }, [devices]);
 
@@ -228,23 +226,15 @@ export default function App() {
     );
   }, []);
 
-  const handleTargetDevice = (deviceId: string) => {
-    setTargetDeviceId(deviceId);
-    saveDeviceId(STORAGE_TARGET_DEVICE, deviceId);
-    if (deviceId && deviceId === paletteDeviceId) {
-      setPaletteDeviceId("");
-      saveDeviceId(STORAGE_PALETTE_DEVICE, "");
-    }
-  };
+  const handleTargetDevice = useCallback((id: string) => {
+    setTargetDeviceId(id);
+    saveDeviceId(STORAGE_TARGET_DEVICE, id);
+  }, []);
 
-  const handlePaletteDevice = (deviceId: string) => {
-    setPaletteDeviceId(deviceId);
-    saveDeviceId(STORAGE_PALETTE_DEVICE, deviceId);
-    if (deviceId && deviceId === targetDeviceId) {
-      setTargetDeviceId("");
-      saveDeviceId(STORAGE_TARGET_DEVICE, "");
-    }
-  };
+  const handlePaletteDevice = useCallback((id: string) => {
+    setPaletteDeviceId(id);
+    saveDeviceId(STORAGE_PALETTE_DEVICE, id);
+  }, []);
 
   const handleTargetHold = useCallback(
     (action: SetStateAction<CameraHold | null>) => {
@@ -312,6 +302,7 @@ export default function App() {
         <CameraPanel
           title="Камера 1 — цель"
           subtitle="Миниатюра / образец цвета"
+          panelId="target"
           deviceId={targetDeviceId}
           devices={devices}
           otherDeviceId={paletteDeviceId}
@@ -335,6 +326,7 @@ export default function App() {
         <CameraPanel
           title="Камера 2 — палитра"
           subtitle="Текущий цвет на палитре"
+          panelId="palette"
           deviceId={paletteDeviceId}
           devices={devices}
           otherDeviceId={targetDeviceId}
