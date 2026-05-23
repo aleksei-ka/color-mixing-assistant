@@ -64,7 +64,22 @@ body {
 }
 
 .lang-switch select {
+  font: inherit;
   font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  min-height: 2.125rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0d0f14;
+  color: #e8eaed;
+  color-scheme: dark;
+  min-width: 7rem;
+  cursor: pointer;
+}
+
+.lang-switch select:focus {
+  outline: 2px solid rgba(94, 184, 255, 0.45);
+  outline-offset: 1px;
 }
 
 .topbar-cam-row {
@@ -286,8 +301,36 @@ body {
 }
 
 .mix-panel h2 {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 1.15rem;
+}
+
+.mix-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.mix-panel-head h2 {
+  margin: 0;
+}
+
+.mix-precise-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #c8d0dc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mix-precise-toggle input {
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .delta-e-line {

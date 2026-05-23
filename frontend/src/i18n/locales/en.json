@@ -101,6 +101,8 @@
   },
   "mix": {
     "title": "Mixing and comparison",
+    "preciseMode": "Smoothing",
+    "preciseModeHint": "On (default): change display only when ΔE shifts by more than 1 after a new sample. Off: update on every sample",
     "loading": "Loading…",
     "sources": "Target: {{target}} · Palette: {{palette}}",
     "sourceCaptured": "{{role}} (capture)",
