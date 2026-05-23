@@ -214,8 +214,6 @@ export default function App() {
   const targetIndex = config?.cameraTargetIndex ?? 0;
   const paletteIndex = config?.cameraPaletteIndex ?? 1;
 
-  const anyHeld = targetHold !== null || paletteHold !== null;
-
   return (
     <div className="app">
       <header className="topbar">
@@ -229,7 +227,6 @@ export default function App() {
           <span className={`badge ${online ? "badge-ok" : "badge-off"}`}>
             API {online ? "online" : "offline"}
           </span>
-          {anyHeld && <span className="badge badge-held">есть захват</span>}
           {config && (
             <span className="muted small">
               cam {targetIndex} / {paletteIndex} · ROI {config.roiSize}px
@@ -308,13 +305,6 @@ export default function App() {
       </section>
 
       <MixSuggestion match={match} error={matchError} />
-
-      <footer className="footer muted small">
-        <p>
-          Захват одной камеры не останавливает другую — можно сравнить
-          захват с live или два захвата между собой.
-        </p>
-      </footer>
     </div>
   );
 }

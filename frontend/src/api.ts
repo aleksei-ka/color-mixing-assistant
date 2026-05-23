@@ -27,6 +27,7 @@ export type MatchResult = {
     message?: string;
     deltaE_current_to_target?: number;
     components: MixComponent[];
+    legend?: string;
     note?: string;
   };
 };
