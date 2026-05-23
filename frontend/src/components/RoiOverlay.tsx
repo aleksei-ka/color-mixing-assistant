@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
 import type { RoiConfig } from "../api";
+import type { FrameSource } from "../utils/frameSource";
 import { pointerToFrame } from "../utils/imageLayout";
 
 const CLOSE_PX = 14;
@@ -13,7 +14,7 @@ type DragState = {
 };
 
 type Props = {
-  imageRef: RefObject<HTMLImageElement | null>;
+  frameRef: RefObject<FrameSource | null>;
   roi: RoiConfig;
   frameWidth: number;
   frameHeight: number;
@@ -55,7 +56,7 @@ function squareRect(
 }
 
 export function RoiOverlay({
-  imageRef,
+  frameRef,
   roi,
   frameWidth,
   frameHeight,
@@ -70,11 +71,11 @@ export function RoiOverlay({
 
   const framePointFromClient = useCallback(
     (clientX: number, clientY: number): [number, number] | null => {
-      const img = imageRef.current;
-      if (!img) return null;
-      return pointerToFrame(clientX, clientY, img, frameWidth, frameHeight);
+      const source = frameRef.current;
+      if (!source) return null;
+      return pointerToFrame(clientX, clientY, source, frameWidth, frameHeight);
     },
-    [imageRef, frameWidth, frameHeight],
+    [frameRef, frameWidth, frameHeight],
   );
 
   const rect = useMemo(

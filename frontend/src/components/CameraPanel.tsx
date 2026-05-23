@@ -1,30 +1,48 @@
-import { useMemo, useRef, useState } from "react";
-import type { CameraDevice, ColorPayload, RoiConfig } from "../api";
-import { LivePreview } from "./LivePreview";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import {
+  analyzeRgb,
+  type CameraHold,
+  type ColorPayload,
+  type RoiConfig,
+} from "../api";
+import type { VideoInputOption } from "../hooks/useMediaDevices";
+import {
+  captureFrameBlob,
+  isFrameReady,
+  type FrameSource,
+} from "../utils/frameSource";
+import { sampleRgbFromFrame } from "../utils/sampleImageColor";
+import {
+  BrowserCamera,
+  type BrowserCameraHandle,
+} from "./BrowserCamera";
 import { RoiControls } from "./RoiControls";
 import { RoiOverlay } from "./RoiOverlay";
 
 type Props = {
   title: string;
   subtitle: string;
-  role: "target" | "palette";
-  streamKey: number;
-  holdImageUrl?: string | null;
-  isHeld: boolean;
+  deviceId: string;
+  devices: VideoInputOption[];
+  otherDeviceId?: string;
+  hold: CameraHold | null;
   color: ColorPayload | null;
-  mock?: boolean;
-  deviceIndex: number;
-  devices: CameraDevice[];
   frameWidth: number;
   frameHeight: number;
   defaultRoiSize: number;
   roi: RoiConfig;
-  onDeviceChange: (index: number) => void;
-  switching?: boolean;
-  capturing?: boolean;
-  capturedAt?: string | null;
-  onCapture: () => void;
-  onResumeLive: () => void;
+  cameraError?: string | null;
+  onDeviceIdChange: (deviceId: string) => void;
+  onFrameSize: (width: number, height: number) => void;
+  onHoldChange: Dispatch<SetStateAction<CameraHold | null>>;
+  onLiveColor: (color: ColorPayload | null) => void;
   onRoiModeChange: (mode: "square" | "polygon") => void;
   onRoiSizeChange: (size: number) => void;
   onRoiMove: (centerX: number, centerY: number) => void;
@@ -33,27 +51,30 @@ type Props = {
   onPolygonComplete: (points: number[][]) => void;
 };
 
+function roiCanSample(roi: RoiConfig): boolean {
+  return (
+    roi.mode === "square" ||
+    (roi.mode === "polygon" && roi.polygonClosed && roi.points.length >= 3)
+  );
+}
+
 export function CameraPanel({
   title,
   subtitle,
-  role,
-  streamKey,
-  holdImageUrl,
-  isHeld,
-  color,
-  mock,
-  deviceIndex,
+  deviceId,
   devices,
+  otherDeviceId,
+  hold,
+  color,
   frameWidth,
   frameHeight,
   defaultRoiSize,
   roi,
-  onDeviceChange,
-  switching,
-  capturing,
-  capturedAt,
-  onCapture,
-  onResumeLive,
+  cameraError,
+  onDeviceIdChange,
+  onFrameSize,
+  onHoldChange,
+  onLiveColor,
   onRoiModeChange,
   onRoiSizeChange,
   onRoiMove,
@@ -61,31 +82,93 @@ export function CameraPanel({
   onRoiRedraw,
   onPolygonComplete,
 }: Props) {
-  const videoRef = useRef<HTMLImageElement>(null);
+  const cameraRef = useRef<BrowserCameraHandle>(null);
+  const frameRef = useRef<FrameSource | null>(null);
+  const holdImgRef = useRef<HTMLImageElement>(null);
   const [polygonDraft, setPolygonDraft] = useState<number[][]>([]);
+  const [capturing, setCapturing] = useState(false);
+  const [localCamError, setLocalCamError] = useState<string | null>(null);
 
-  const options = useMemo(() => {
-    const byIndex = new Map(devices.map((d) => [d.index, d]));
-    if (!byIndex.has(deviceIndex)) {
-      byIndex.set(deviceIndex, {
-        index: deviceIndex,
-        width: 0,
-        height: 0,
-        inUse: true,
-      });
+  const isHeld = hold !== null;
+  const duplicateDevice =
+    deviceId && otherDeviceId && deviceId === otherDeviceId;
+
+  const setFrameRef = useCallback((el: FrameSource | null) => {
+    frameRef.current = el;
+  }, []);
+
+  const sampleCurrentFrame = useCallback(async (): Promise<ColorPayload | null> => {
+    const source = frameRef.current;
+    if (!source || !isFrameReady(source) || !roiCanSample(roi)) {
+      return null;
     }
-    return [...byIndex.values()].sort((a, b) => a.index - b.index);
-  }, [devices, deviceIndex]);
+    try {
+      const rgb = sampleRgbFromFrame(source, roi);
+      return await analyzeRgb(rgb);
+    } catch {
+      return null;
+    }
+  }, [roi]);
+
+  useEffect(() => {
+    if (isHeld) return;
+    const tick = async () => {
+      const c = await sampleCurrentFrame();
+      onLiveColor(c);
+    };
+    tick();
+    const id = window.setInterval(tick, 400);
+    return () => window.clearInterval(id);
+  }, [isHeld, sampleCurrentFrame, onLiveColor]);
+
+  useEffect(() => {
+    if (!isHeld) return;
+    let cancelled = false;
+    (async () => {
+      const c = await sampleCurrentFrame();
+      if (!cancelled && c) {
+        onHoldChange((prev) => (prev ? { ...prev, color: c } : null));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHeld, hold?.imageUrl, roi, sampleCurrentFrame, onHoldChange]);
+
+  const handleCapture = async () => {
+    const video = cameraRef.current?.getVideo();
+    if (!video || !isFrameReady(video)) return;
+    setCapturing(true);
+    try {
+      const { blobUrl } = await captureFrameBlob(video);
+      const rgb = sampleRgbFromFrame(video, roi);
+      const analyzed = await analyzeRgb(rgb);
+      onHoldChange({
+        color: analyzed,
+        imageUrl: blobUrl,
+        capturedAt: new Date().toISOString(),
+      });
+      onLiveColor(null);
+    } catch (e) {
+      setLocalCamError(e instanceof Error ? e.message : "Ошибка захвата");
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  const handleResumeLive = () => {
+    onHoldChange(null);
+  };
 
   const timeLabel =
-    capturedAt &&
-    new Date(capturedAt).toLocaleTimeString("ru-RU", {
+    hold?.capturedAt &&
+    new Date(hold.capturedAt).toLocaleTimeString("ru-RU", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
 
-  const showOverlay = isHeld ? Boolean(holdImageUrl) : true;
+  const showOverlay = isHeld ? Boolean(hold?.imageUrl) : Boolean(deviceId);
 
   return (
     <section className={`camera-panel ${isHeld ? "camera-panel-held" : ""}`}>
@@ -95,31 +178,37 @@ export function CameraPanel({
           <p>{subtitle}</p>
         </div>
         <div className="camera-panel-badges">
-          {switching && (
-            <span className="badge badge-switching">переключение…</span>
-          )}
           {!isHeld ? (
             <span className="badge badge-live">live</span>
           ) : (
             <span className="badge badge-held">захват</span>
           )}
-          {mock && <span className="badge badge-mock">mock</span>}
         </div>
       </header>
+
+      {(cameraError || localCamError) && (
+        <p className="camera-error muted small">
+          {cameraError || localCamError}
+        </p>
+      )}
+      {duplicateDevice && (
+        <p className="camera-warn muted small">
+          Та же камера выбрана для обеих панелей — лучше выбрать разные устройства.
+        </p>
+      )}
 
       <div className="camera-toolbar">
         <label className="camera-select-label">
           <span className="camera-select-title">Устройство</span>
           <select
-            value={deviceIndex}
+            value={deviceId}
             disabled={isHeld}
-            onChange={(e) => onDeviceChange(Number(e.target.value))}
+            onChange={(e) => onDeviceIdChange(e.target.value)}
           >
-            {options.map((d) => (
-              <option key={d.index} value={d.index}>
-                Камера {d.index}
-                {d.width > 0 ? ` (${d.width}×${d.height})` : ""}
-                {d.inUse ? " · в работе" : ""}
+            {!deviceId && <option value="">— выберите камеру —</option>}
+            {devices.map((d) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label}
               </option>
             ))}
           </select>
@@ -128,8 +217,8 @@ export function CameraPanel({
           <button
             type="button"
             className="btn btn-primary camera-capture-btn"
-            disabled={capturing}
-            onClick={onCapture}
+            disabled={capturing || !deviceId}
+            onClick={handleCapture}
           >
             {capturing ? "Захват…" : "Захватить"}
           </button>
@@ -137,7 +226,7 @@ export function CameraPanel({
           <button
             type="button"
             className="btn btn-secondary camera-capture-btn"
-            onClick={onResumeLive}
+            onClick={handleResumeLive}
           >
             Снова live
           </button>
@@ -157,26 +246,34 @@ export function CameraPanel({
       />
 
       <div className="video-wrap">
-        {isHeld && holdImageUrl ? (
+        {isHeld && hold?.imageUrl ? (
           <img
-            ref={videoRef}
-            src={holdImageUrl}
+            ref={(el) => {
+              holdImgRef.current = el;
+              setFrameRef(el);
+            }}
+            src={hold.imageUrl}
             alt={`${title} (захват)`}
             className="video"
           />
-        ) : (
-          <LivePreview
-            ref={videoRef}
-            role={role}
-            deviceIndex={deviceIndex}
-            streamKey={streamKey}
-            paused={isHeld}
+        ) : deviceId ? (
+          <BrowserCamera
+            ref={cameraRef}
+            deviceId={deviceId}
+            active={!isHeld}
             alt={title}
+            onReady={onFrameSize}
+            onError={setLocalCamError}
+            onVideoMount={setFrameRef}
           />
+        ) : (
+          <div className="video video-placeholder">
+            Выберите камеру и разрешите доступ в браузере
+          </div>
         )}
         {showOverlay && (
           <RoiOverlay
-            imageRef={videoRef}
+            frameRef={frameRef}
             roi={roi}
             frameWidth={frameWidth}
             frameHeight={frameHeight}

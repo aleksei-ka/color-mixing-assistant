@@ -1,16 +1,18 @@
+import type { FrameSource } from "./frameSource";
+import { framePixelSize } from "./frameSource";
+
 /** Visible image rect for object-fit: contain inside the element box. */
-export function getContainedImageRect(img: HTMLImageElement): {
+export function getContainedImageRect(source: FrameSource): {
   offsetX: number;
   offsetY: number;
   width: number;
   height: number;
 } | null {
-  const nw = img.naturalWidth;
-  const nh = img.naturalHeight;
+  const { w: nw, h: nh } = framePixelSize(source);
   if (!nw || !nh) return null;
 
-  const boxW = img.clientWidth;
-  const boxH = img.clientHeight;
+  const boxW = source.clientWidth;
+  const boxH = source.clientHeight;
   if (!boxW || !boxH) return null;
 
   const scale = Math.min(boxW / nw, boxH / nh);
@@ -24,18 +26,18 @@ export function getContainedImageRect(img: HTMLImageElement): {
   };
 }
 
-/** Map pointer position inside <img> to frame coordinates (0..frameWidth/Height). */
+/** Map pointer position to pixel coordinates on the frame. */
 export function pointerToFrame(
   clientX: number,
   clientY: number,
-  img: HTMLImageElement,
+  source: FrameSource,
   frameWidth: number,
   frameHeight: number,
 ): [number, number] | null {
-  const rect = getContainedImageRect(img);
+  const rect = getContainedImageRect(source);
   if (!rect || rect.width <= 0 || rect.height <= 0) return null;
 
-  const box = img.getBoundingClientRect();
+  const box = source.getBoundingClientRect();
   const localX = clientX - box.left - rect.offsetX;
   const localY = clientY - box.top - rect.offsetY;
 
@@ -43,8 +45,7 @@ export function pointerToFrame(
   const ny = localY / rect.height;
   if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return null;
 
-  const nw = img.naturalWidth || frameWidth;
-  const nh = img.naturalHeight || frameHeight;
+  const { w: nw, h: nh } = framePixelSize(source);
   const fx = Math.round(nx * nw);
   const fy = Math.round(ny * nh);
 

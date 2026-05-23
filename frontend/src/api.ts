@@ -32,27 +32,10 @@ export type MatchResult = {
   };
 };
 
-export type StreamStatus = {
-  role: string;
-  deviceIndex: number;
-  mock: boolean;
-  error: string | null;
-};
-
-export type CameraDevice = {
-  index: number;
-  width: number;
-  height: number;
-  inUse?: boolean;
-};
-
 export type AppConfig = {
-  cameraTargetIndex: number;
-  cameraPaletteIndex: number;
   roiSize: number;
   frameWidth?: number;
   frameHeight?: number;
-  cameraProbeMax?: number;
 };
 
 export type RoiConfig = {
@@ -65,7 +48,6 @@ export type RoiConfig = {
   polygonClosed: boolean;
 };
 
-/** Захваченный кадр и цвет одной камеры */
 export type CameraHold = {
   color: ColorPayload;
   imageUrl: string;
@@ -76,18 +58,6 @@ export type CameraRole = "target" | "palette";
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path);
-  if (!res.ok) {
-    throw new Error(`${path} → ${res.status}`);
-  }
-  return res.json() as Promise<T>;
-}
-
-async function putJson<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
   if (!res.ok) {
     throw new Error(`${path} → ${res.status}`);
   }
@@ -106,21 +76,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function snapshotUrl(
-  role: CameraRole,
-  options?: { overlay?: boolean },
-): string {
-  const overlay = options?.overlay !== false;
-  const q = overlay ? "" : "?overlay=false";
-  return `/api/snapshot/${role}${q}`;
-}
-
 export function fetchHealth(): Promise<{ status: string }> {
   return getJson("/api/health");
 }
 
-export function fetchStatus(): Promise<{ streams: StreamStatus[] }> {
-  return getJson("/api/status");
+export function fetchConfig(): Promise<AppConfig> {
+  return getJson("/api/config");
 }
 
 export type MatchOverrides = {
@@ -137,96 +98,24 @@ function colorQueryParams(
   return `${prefix}R=${r}&${prefix}G=${g}&${prefix}B=${b}`;
 }
 
-export function fetchMatch(overrides?: MatchOverrides): Promise<MatchResult> {
+export function fetchMatch(overrides: MatchOverrides): Promise<MatchResult> {
   const q = [
-    colorQueryParams("target", overrides?.target),
-    colorQueryParams("palette", overrides?.palette),
+    colorQueryParams("target", overrides.target),
+    colorQueryParams("palette", overrides.palette),
   ]
     .filter(Boolean)
     .join("&");
-  const path = q ? `/api/match?${q}` : "/api/match";
-  return getJson(path);
-}
-
-export function fetchColor(
-  role: CameraRole,
-): Promise<{ role: string; color: ColorPayload; mock: boolean }> {
-  return getJson(`/api/color/${role}`);
+  if (!q) {
+    return Promise.reject(new Error("Нужны цвета target и palette"));
+  }
+  return getJson(`/api/match?${q}`);
 }
 
 export function analyzeRgb(rgb: Rgb): Promise<ColorPayload> {
   return postJson("/api/analyze-rgb", rgb);
 }
 
-export function fetchConfig(): Promise<AppConfig> {
-  return getJson("/api/config");
-}
-
-export function fetchRoi(role: CameraRole): Promise<RoiConfig> {
-  return getJson(`/api/roi/${role}`);
-}
-
-export function updateRoi(
-  role: CameraRole,
-  patch: {
-    mode?: "square" | "polygon";
-    size?: number;
-    centerX?: number;
-    centerY?: number;
-    resetCenter?: boolean;
-    points?: number[][];
-  },
-): Promise<RoiConfig> {
-  return putJson(`/api/roi/${role}`, patch);
-}
-
-export function resetRoi(role: CameraRole): Promise<RoiConfig> {
-  return postJson(`/api/roi/${role}/reset`, {});
-}
-
-export function redrawPolygonRoi(role: CameraRole): Promise<RoiConfig> {
-  return postJson(`/api/roi/${role}/redraw`, {});
-}
-
-export function fetchCameras(): Promise<{ devices: CameraDevice[] }> {
-  return getJson("/api/cameras");
-}
-
-export function selectCameras(
-  targetIndex?: number,
-  paletteIndex?: number,
-): Promise<AppConfig> {
-  return postJson("/api/cameras/select", {
-    targetIndex,
-    paletteIndex,
-  });
-}
-
-export async function fetchSnapshotBlob(
-  role: CameraRole,
-  options?: { overlay?: boolean },
-): Promise<Blob> {
-  const res = await fetch(snapshotUrl(role, options));
-  if (!res.ok) {
-    throw new Error(`snapshot ${role} → ${res.status}`);
-  }
-  return res.blob();
-}
-
 export function releaseCameraHold(hold: CameraHold | null): void {
   if (!hold) return;
   URL.revokeObjectURL(hold.imageUrl);
-}
-
-/** Захват одной камеры: снимок + текущий цвет из ROI */
-export async function captureCamera(role: CameraRole): Promise<CameraHold> {
-  const [colorRes, blob] = await Promise.all([
-    fetchColor(role),
-    fetchSnapshotBlob(role, { overlay: false }),
-  ]);
-  return {
-    color: colorRes.color,
-    imageUrl: URL.createObjectURL(blob),
-    capturedAt: new Date().toISOString(),
-  };
 }

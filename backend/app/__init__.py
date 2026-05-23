@@ -1,1 +1,1 @@
-"""Color Matcher backend — camera capture and color analysis."""
+"""Color Matcher backend — color analysis and mix hints."""
