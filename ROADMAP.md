@@ -143,6 +143,7 @@ flowchart LR
 - [x] `scripts/qg.sh` и `scripts/qg.ps1` — единая точка входа
 - [x] `scripts/check_i18n_keys.py` — QG v2
 - [x] Pre-commit — опционально (i18n hook в `.pre-commit-config.yaml`)
+- [x] QG v3 — актуальность `docs/openapi.json` (после п. 6)
 - [ ] Docker / CI — stage `test`, вызов `qg` (см. п. 9)
 
 **Критерий:** скрипт падает при падении тестов; после i18n — при пропущенном ключе.
@@ -151,14 +152,14 @@ flowchart LR
 
 ---
 
-## 6. OpenAPI бэкенда
+## 6. OpenAPI бэкенда — ✅ сделано
 
 **Отличие от п. 8:** здесь — **машиночитаемый контракт**; в архитектурной доке — ссылка и смысл потоков.
 
-- [ ] `summary` / `description` / теги на всех эндпоинтах
-- [ ] Pydantic-модели с примерами
-- [ ] Задокументированные aliases query (`targetR`, …)
-- [ ] `docs/openapi.json` в репо; обновление в **QG v3** или при релизе
+- [x] `summary` / `description` / теги на всех эндпоинтах
+- [x] Pydantic-модели с примерами (`app/schemas.py`)
+- [x] Задокументированные aliases query (`targetR`, …)
+- [x] `docs/openapi.json` в репо; **QG v3** — `scripts/export_openapi.py`
 - [ ] Опционально: `openapi-typescript` для фронта
 - [ ] `/api/v1/...` — только при планируемых breaking changes
 
@@ -227,7 +228,7 @@ flowchart LR
 ## Порядок работ (чеклист)
 
 ```
-Фаза A   [ ] 4 Тесты (минимум)  →  [ ] 5 QG v1  →  [ ] 6 OpenAPI (базово)
+Фаза A   [x] 4 Тесты (минимум)  →  [x] 5 QG  →  [x] 6 OpenAPI (базово)
 Фаза B   [x] 1 ROI  →  [ ] 3 Политика снимков (ADR + README)
 Фаза C   [ ] 2.1 CRUD  →  [ ] 2.2 импорт/экспорт  →  [ ] 2.3 с камеры
          [ ] 6 OpenAPI — дополнить эндпоинтами базовых цветов

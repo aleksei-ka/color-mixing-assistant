@@ -1,8 +1,13 @@
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 client = TestClient(app)
+REPO_ROOT = Path(__file__).resolve().parents[2]
+OPENAPI_FILE = REPO_ROOT / "docs" / "openapi.json"
 
 
 def test_health():
@@ -44,3 +49,9 @@ def test_match_with_query_colors():
     assert "deltaE" in body
     assert body["deltaE"] > 0
     assert "mix" in body
+
+
+def test_openapi_json_matches_live_schema():
+    assert OPENAPI_FILE.is_file(), "Run: python scripts/export_openapi.py"
+    committed = json.loads(OPENAPI_FILE.read_text(encoding="utf-8"))
+    assert committed == app.openapi()

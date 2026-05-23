@@ -1,0 +1,756 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Color Matcher API",
+    "description": "Color analysis and paint-mix hints. Cameras and ROI live in the browser; the server only receives RGB values via query parameters or JSON body.",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "UI defaults",
+        "description": "Default ROI size and reference frame dimensions (cameras run in the browser).",
+        "operationId": "get_config_api_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/base-colors": {
+      "get": {
+        "tags": [
+          "colors"
+        ],
+        "summary": "Base paint catalog",
+        "description": "Pigments from `backend/data/base_colors.json` used for mix suggestions.",
+        "operationId": "get_base_colors_api_base_colors_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseColorsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analyze-rgb": {
+      "post": {
+        "tags": [
+          "colors"
+        ],
+        "summary": "Analyze RGB",
+        "description": "Convert a single RGB sample (from canvas/ROI) to Lab, HSL, CMYK, and hex.",
+        "operationId": "analyze_rgb_endpoint_api_analyze_rgb_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RgbBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColorReadingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match": {
+      "get": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Match target vs palette",
+        "description": "Compare two browser-sampled colors: ΔE (CIE 2000) and a mix hint from base paints.\n\nQuery aliases match the frontend: `targetR`, `targetG`, `targetB`, `paletteR`, `paletteG`, `paletteB`.",
+        "operationId": "get_match_api_match_get",
+        "parameters": [
+          {
+            "name": "targetR",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Target color red (0–255). Required with targetG and targetB.",
+              "examples": [
+                200
+              ],
+              "title": "Targetr"
+            },
+            "description": "Target color red (0–255). Required with targetG and targetB."
+          },
+          {
+            "name": "targetG",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Target color green (0–255).",
+              "examples": [
+                120
+              ],
+              "title": "Targetg"
+            },
+            "description": "Target color green (0–255)."
+          },
+          {
+            "name": "targetB",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Target color blue (0–255).",
+              "examples": [
+                80
+              ],
+              "title": "Targetb"
+            },
+            "description": "Target color blue (0–255)."
+          },
+          {
+            "name": "paletteR",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Palette color red (0–255). Required with paletteG and paletteB.",
+              "examples": [
+                180
+              ],
+              "title": "Paletter"
+            },
+            "description": "Palette color red (0–255). Required with paletteG and paletteB."
+          },
+          {
+            "name": "paletteG",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Palette color green (0–255).",
+              "examples": [
+                100
+              ],
+              "title": "Paletteg"
+            },
+            "description": "Palette color green (0–255)."
+          },
+          {
+            "name": "paletteB",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 255,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Palette color blue (0–255).",
+              "examples": [
+                70
+              ],
+              "title": "Paletteb"
+            },
+            "description": "Palette color blue (0–255)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or incomplete RGB query parameters"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BaseColorEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "Cadmium Red Medium"
+            ]
+          },
+          "rgb": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rgb",
+            "examples": [
+              [
+                227,
+                38,
+                54
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "rgb"
+        ],
+        "title": "BaseColorEntry"
+      },
+      "BaseColorsResponse": {
+        "properties": {
+          "colors": {
+            "items": {
+              "$ref": "#/components/schemas/BaseColorEntry"
+            },
+            "type": "array",
+            "title": "Colors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "colors"
+        ],
+        "title": "BaseColorsResponse"
+      },
+      "CmykChannels": {
+        "properties": {
+          "c": {
+            "type": "number",
+            "title": "C"
+          },
+          "m": {
+            "type": "number",
+            "title": "M"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "k": {
+            "type": "number",
+            "title": "K"
+          }
+        },
+        "type": "object",
+        "required": [
+          "c",
+          "m",
+          "y",
+          "k"
+        ],
+        "title": "CmykChannels"
+      },
+      "ColorReadingResponse": {
+        "properties": {
+          "rgb": {
+            "$ref": "#/components/schemas/RgbChannels"
+          },
+          "hex": {
+            "type": "string",
+            "title": "Hex",
+            "examples": [
+              "#e32636"
+            ]
+          },
+          "hsl": {
+            "$ref": "#/components/schemas/HslChannels"
+          },
+          "lab": {
+            "$ref": "#/components/schemas/LabChannels"
+          },
+          "cmyk": {
+            "$ref": "#/components/schemas/CmykChannels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rgb",
+          "hex",
+          "hsl",
+          "lab",
+          "cmyk"
+        ],
+        "title": "ColorReadingResponse"
+      },
+      "ConfigResponse": {
+        "properties": {
+          "roiSize": {
+            "type": "integer",
+            "title": "Roisize",
+            "examples": [
+              80
+            ]
+          },
+          "frameWidth": {
+            "type": "integer",
+            "title": "Framewidth",
+            "examples": [
+              640
+            ]
+          },
+          "frameHeight": {
+            "type": "integer",
+            "title": "Frameheight",
+            "examples": [
+              480
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "roiSize",
+          "frameWidth",
+          "frameHeight"
+        ],
+        "title": "ConfigResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "HslChannels": {
+        "properties": {
+          "h": {
+            "type": "number",
+            "title": "H"
+          },
+          "s": {
+            "type": "number",
+            "title": "S"
+          },
+          "l": {
+            "type": "number",
+            "title": "L"
+          }
+        },
+        "type": "object",
+        "required": [
+          "h",
+          "s",
+          "l"
+        ],
+        "title": "HslChannels"
+      },
+      "LabChannels": {
+        "properties": {
+          "l": {
+            "type": "number",
+            "title": "L"
+          },
+          "a": {
+            "type": "number",
+            "title": "A"
+          },
+          "b": {
+            "type": "number",
+            "title": "B"
+          }
+        },
+        "type": "object",
+        "required": [
+          "l",
+          "a",
+          "b"
+        ],
+        "title": "LabChannels"
+      },
+      "MatchResponse": {
+        "properties": {
+          "deltaE": {
+            "type": "number",
+            "title": "Deltae",
+            "examples": [
+              12.4
+            ]
+          },
+          "target": {
+            "$ref": "#/components/schemas/ColorReadingResponse"
+          },
+          "palette": {
+            "$ref": "#/components/schemas/ColorReadingResponse"
+          },
+          "targetCaptured": {
+            "type": "boolean",
+            "title": "Targetcaptured",
+            "examples": [
+              true
+            ]
+          },
+          "paletteCaptured": {
+            "type": "boolean",
+            "title": "Palettecaptured",
+            "examples": [
+              true
+            ]
+          },
+          "mix": {
+            "$ref": "#/components/schemas/MixSuggestion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deltaE",
+          "target",
+          "palette",
+          "targetCaptured",
+          "paletteCaptured",
+          "mix"
+        ],
+        "title": "MatchResponse"
+      },
+      "MixComponent": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "rgb": {
+            "$ref": "#/components/schemas/RgbChannels"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight"
+          },
+          "deltaE_to_target": {
+            "type": "number",
+            "title": "Deltae To Target"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "rgb",
+          "weight",
+          "deltaE_to_target"
+        ],
+        "title": "MixComponent"
+      },
+      "MixSuggestion": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "deltaE_current_to_target": {
+            "type": "number",
+            "title": "Deltae Current To Target"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/MixComponent"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "legend": {
+            "type": "string",
+            "title": "Legend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "deltaE_current_to_target",
+          "components",
+          "legend"
+        ],
+        "title": "MixSuggestion"
+      },
+      "RgbBody": {
+        "properties": {
+          "r": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "R",
+            "examples": [
+              227
+            ]
+          },
+          "g": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "G",
+            "examples": [
+              38
+            ]
+          },
+          "b": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "B",
+            "examples": [
+              54
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "r",
+          "g",
+          "b"
+        ],
+        "title": "RgbBody",
+        "description": "RGB triplet sampled in the browser (0–255 per channel)."
+      },
+      "RgbChannels": {
+        "properties": {
+          "r": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "R",
+            "examples": [
+              200
+            ]
+          },
+          "g": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "G",
+            "examples": [
+              120
+            ]
+          },
+          "b": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 0.0,
+            "title": "B",
+            "examples": [
+              80
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "r",
+          "g",
+          "b"
+        ],
+        "title": "RgbChannels"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness and UI defaults."
+    },
+    {
+      "name": "colors",
+      "description": "RGB → Lab/HSL/CMYK and base paint catalog."
+    },
+    {
+      "name": "match",
+      "description": "ΔE and mix suggestion from browser-sampled RGB pairs."
+    }
+  ]
+}

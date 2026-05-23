@@ -61,6 +61,8 @@ API: http://127.0.0.1:8000/docs
 
 `backend/data/base_colors.json` — дефолт для подсказки смешивания (`GET /api/base-colors`, используется в `match`).
 
+Контракт API: [docs/openapi.json](docs/openapi.json) (Swagger UI: `http://127.0.0.1:8000/docs`). Обновление: `python scripts/export_openapi.py`.
+
 ## Тесты и Quality Gate
 
 ```powershell
